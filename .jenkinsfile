@@ -1,0 +1,50 @@
+def build_os_vers = ["22.04"]
+
+def parallel_versions = [:]
+
+for (ver in build_os_vers) {
+  def version = ver;
+
+  parallel_versions[version] = {
+    node("${version} && rustup") {
+      def src = null;
+
+      withEnv(["PATH+RUST=${HOME}/.cargo/bin"]) {
+
+        stage("${version}-preparation") {
+          src = checkout(scm)
+        }
+
+        stage("${version}-build") {
+          sh "cargo build"
+        }
+
+        stage("${version}-check") {
+          sh "cargo check"
+        }
+
+        stage("${version}-test") {
+          warnError("test") {
+            sh "cargo test"
+          }
+        }
+
+        stage("${version}-clippy") {
+          warnError("clippy") {
+            sh "cargo clippy"
+          }
+        }
+
+        stage("${version}-run") {
+          warnError("run") {
+            sh "cargo run -- --help"
+          }
+        }
+      }
+
+    } //node
+
+  } // parallel_versions
+
+} // versions
+parallel parallel_versions
