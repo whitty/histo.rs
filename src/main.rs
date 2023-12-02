@@ -60,7 +60,7 @@ fn main() {
         .set_y_axis_label(String::from("y_axis_label\nyy"));
     let x = g1.draw();
 
-    println!("{x}");
+    println!("{}", x);
 }
 
 // Claps' built-in self test
