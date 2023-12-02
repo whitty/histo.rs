@@ -3,5 +3,32 @@
 version = 3
 
 [[package]]
+name = "asciibox"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "40a19faf92f9a643b8e3bb4295cc0f15364388d4a2e25e81c841d1b6d8cd58b8"
+dependencies = [
+ "lazy_static",
+]
+
+[[package]]
+name = "asciigraph"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4936bf857286246b0b40631d92a45cfdbbb7380c7e4521d653db4752c01497c1"
+dependencies = [
+ "asciibox",
+]
+
+[[package]]
 name = "histo"
 version = "0.1.0"
+dependencies = [
+ "asciigraph",
+]
+
+[[package]]
+name = "lazy_static"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
