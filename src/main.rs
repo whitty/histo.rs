@@ -33,7 +33,10 @@ fn main() {
     println!("{:?}", args);
     match &args.command {
         Commands::Simple(xx) => {
-            println!("Hello {:?} match=${:?}", args.input, xx.match_)
+            println!("Hello {:?} match=${:?}", args.input, xx.match_);
+            for x in histo::data::LineVisitor::new(args.input) {
+                println!("{:?}", x);
+            }
         }
     }
 
