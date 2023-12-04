@@ -34,19 +34,11 @@ fn main() {
     match &args.command {
         Commands::Simple(xx) => {
             println!("Hello {:?} match=${:?}", args.input, xx.match_);
-            for x in histo::data::LineVisitor::new(args.input) {
-                println!("{:?}", x);
-            }
+            let data = histo::data::simple_load(args.input);
+            let h = histo::graph::Histogram::new_it(&mut data.iter().map(|(x,v)| (*v, x.to_string())));
+            println!("{}", h.draw());
         }
     }
-
-    println!("Hello, world!");
-    let d = Graph::new(36, 18)  // (width, height)
-        .set_1d_data(
-            vec![256, 128, 192, 160, 176, 168, 172, 170]
-        )
-        .draw();
-    println!("{}", d);
 
     let mut g1 = Graph::default();
 

@@ -1,4 +1,2 @@
-mod data;
-mod graph;
-
-pub use data::read;
+pub mod data;
+pub mod graph;

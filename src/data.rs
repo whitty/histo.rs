@@ -83,3 +83,12 @@ impl Iterator for LineVisitor {
         }
     }
 }
+
+pub fn simple_load(inp: Vec<String>) ->std::collections::BTreeMap<String, i64> {
+    let mut map = std::collections::BTreeMap::new();
+    for x in LineVisitor::new(inp) {
+        let val = map.entry(x).or_insert(0);
+        *val += 1;
+    }
+    map
+}
