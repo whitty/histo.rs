@@ -15,31 +15,38 @@ for (ver in build_os_vers) {
           src = checkout(scm)
         }
 
-        stage("${version}-build") {
-          sh "cargo build"
-        }
+        for (rev in ['', '-norestrict']) {
 
-        stage("${version}-check") {
-          sh "cargo check"
-        }
-
-        stage("${version}-test") {
-          warnError("test") {
-            sh "cargo test"
+          stage("${version}-build${rev}") {
+            sh "cargo build"
           }
-        }
 
-        stage("${version}-clippy") {
-          warnError("clippy") {
-            sh "cargo clippy"
+          stage("${version}-check${rev}") {
+            sh "cargo check"
           }
-        }
 
-        stage("${version}-run") {
-          warnError("run") {
-            sh "cargo run -- --help"
+          stage("${version}-test${rev}") {
+            warnError("test") {
+              sh "cargo test"
+            }
           }
-        }
+
+          stage("${version}-clippy${rev}") {
+            warnError("clippy") {
+              sh "cargo clippy"
+            }
+          }
+
+          stage("${version}-run${rev}") {
+            warnError("run") {
+              sh "cargo run -- --help"
+            }
+          }
+
+          sh "rm -f rust-toolchain.toml Cargo.lock"
+
+        } // rev
+
       }
 
     } //node
