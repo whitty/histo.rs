@@ -1,4 +1,5 @@
 use clap::{Parser, ArgAction::Append};
+use regex::Regex;
 
 /// Quick and dirty analyzer for file generating histograms from
 /// log files and similar text-files
@@ -20,6 +21,7 @@ struct Options {
 enum Commands {
     /// Simple histogram of frequencies
     Simple(Simple),
+    TimeDiff(TimeDiff),
 }
 
 #[derive(clap::Args, Debug)]
@@ -29,7 +31,21 @@ struct Simple {
     match_: Option<String>,
 }
 
-fn main() {
+#[derive(clap::Args, Debug)]
+struct TimeDiff {
+    /// Optional regex to match values
+    #[arg(long, value_name="regexp", value_parser = regexp_with_one_match, default_value=r"^(\d+\.\d+)")]
+    time_select: Regex,
+}
+
+fn regexp_with_one_match(s: &str) -> Result<Regex, String> {
+    let re = Regex::new(s)
+        .map_err(|e| e.to_string())?;
+    // TODO check the number of matches
+    Ok(re)
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Options::parse();
 
     match &args.command {
@@ -38,8 +54,13 @@ fn main() {
             let g = histo::graph::Histogram::new_it(&mut data.iter().map(|(x,v)| (*v, x.to_string())))
                 .set_auto_geometry(args.height).draw();
             println!("{}", g);
+        },
+        Commands::TimeDiff(a) => {
+            println!("Hello {:?} match=${:?}", args.input, a.time_select);
         }
     }
+
+    Ok(())
 }
 
 // Claps' built-in self test
