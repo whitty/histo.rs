@@ -10,3 +10,4 @@ asciigraph = "^0.6.0"
 # fix versions for older rust
 clap = { version = "=4.0.32", features = ["derive"] }
 clap_lex = { version = "=0.3.0" }
+regex = { version = "=1.9.6" }
