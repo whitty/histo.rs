@@ -8,6 +8,9 @@ struct Options {
     #[command(subcommand)]
     command: Commands,
 
+    #[arg(long, default_value_t=40, global=true)]
+    height: usize,
+
     /// Input file(s)
     #[arg(action = Append, global=true)]
     input: Vec<String>,
@@ -29,13 +32,12 @@ struct Simple {
 fn main() {
     let args = Options::parse();
 
-    println!("{:?}", args);
     match &args.command {
-        Commands::Simple(xx) => {
-            println!("Hello {:?} match=${:?}", args.input, xx.match_);
+        Commands::Simple(_) => {
             let data = histo::data::simple_load(args.input);
-            let h = histo::graph::Histogram::new_it(&mut data.iter().map(|(x,v)| (*v, x.to_string())));
-            println!("{}", h.draw());
+            let g = histo::graph::Histogram::new_it(&mut data.iter().map(|(x,v)| (*v, x.to_string())))
+                .set_auto_geometry(args.height).draw();
+            println!("{}", g);
         }
     }
 }
