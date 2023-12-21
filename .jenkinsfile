@@ -38,10 +38,14 @@ for (ver in build_os_vers) {
           }
 
           stage("${version}-run${rev}") {
-            warnError("run") {
-              for (cmd in [
-                '--help',
-              ]) {
+            for (cmd in [
+              '--help',
+              'simple .jenkinsfile',
+              'simple --height 25 .jenkinsfile',
+              'time-diff --height 25 tests/example.txt',
+              "time-diff --height 25 --time-select '^(\\d+)' tests/example.txt",
+            ]) {
+              warnError("run") {
                 sh "cargo run -- $cmd"
               }
             }
