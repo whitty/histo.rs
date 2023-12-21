@@ -1,3 +1,4 @@
+use rust_decimal::prelude::*;
 
 use super::Result;
 
@@ -66,6 +67,65 @@ impl Histogram {
     }
 }
 
+#[derive(Debug)]
+pub struct Buckets {
+    count : usize,
+    min: Option<Decimal>,
+    max: Option<Decimal>,
+}
+
+impl Buckets {
+    pub fn set_count(&mut self, c: usize) -> &mut Self {
+        self.count = c;
+        self
+    }
+
+    pub fn analyse(&mut self, v: &Vec<Decimal>) -> &mut Self {
+        self.min = v.iter().min().map(|x| x.clone());
+        self.max = v.iter().max().map(|x| x.clone());
+        self
+    }
+
+    pub fn linear_buckets(&self) -> Vec<(Decimal, Decimal, String)> {
+        let span = self.max.expect("max not set") - self.min.expect("min not set");
+        let delta = span / Decimal::new(self.count as i64, 0);
+        let min = self.min.unwrap();
+        let two = Decimal::new(2, 0);
+
+        (0..=self.count).map(|n| {
+            let s = min + (Decimal::new(n as i64, 0) * delta);
+            (s, s + delta, (s + (delta / two)).to_string())
+        }).collect()
+    }
+
+    pub fn generate(&self, v: &Vec<Decimal>) -> std::collections::BTreeMap<String, i64> {
+        let mut map = std::collections::BTreeMap::new();
+        let buckets = self.linear_buckets();
+        for b in &buckets {
+            map.entry(b.2.clone()).or_insert(0);
+        }
+        let span = self.max.expect("max not set") - self.min.expect("min not set");
+        let delta = span / Decimal::new(self.count as i64, 0);
+        let min = self.min.unwrap();
+        for val in v {
+            let x = ((val - min) / delta).floor();
+            let x = x.to_i32().unwrap() as usize;
+            assert!(x < buckets.len());
+            *map.get_mut(&buckets[x].2).unwrap() += 1;
+        }
+        map
+    }
+}
+
+impl Default for Buckets {
+    fn default() -> Self {
+        Self {
+            count : 80,
+            min: None,
+            max: None,
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {

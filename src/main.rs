@@ -56,7 +56,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", g);
         },
         Commands::TimeDiff(a) => {
-            println!("Hello {:?} match=${:?}", args.input, a.time_select);
+            let data = histo::data::time_diff_load(args.input, &a.time_select);
+            let data = histo::graph::Buckets::default()
+                .analyse(&data)
+                .generate(&data);
+            let g = histo::graph::Histogram::new_it(&mut data.into_iter())
+                .set_auto_geometry(args.height).draw();
+            println!("{}", g);
         }
     }
 
