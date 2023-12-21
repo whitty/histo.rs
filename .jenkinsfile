@@ -39,7 +39,11 @@ for (ver in build_os_vers) {
 
           stage("${version}-run${rev}") {
             warnError("run") {
-              sh "cargo run -- --help"
+              for (cmd in [
+                '--help',
+              ]) {
+                sh "cargo run -- $cmd"
+              }
             }
           }
 
