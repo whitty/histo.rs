@@ -19,11 +19,11 @@ impl Default for Histogram {
 impl Histogram {
 
     pub fn new<T: Into<i64> + Copy>(buckets: &Vec<(T, &str)>) -> Histogram {
-        return Self::new_it(&mut buckets.iter().map(|(x, title)| (*x, title.to_string())));
+        return Self::new_it(&mut buckets.iter().map(|(x, title)| (title.to_string(), *x)));
     }
 
-    pub fn new_it<T: Into<i64> + Copy, It: Iterator<Item = (T, String)>>(buckets: &mut It) -> Histogram {
-        return Histogram { buckets: buckets.map( |(x, title)| (title, x.into())).collect(), ..Default::default() }
+    pub fn new_it<T: Into<i64> + Copy, It: Iterator<Item = (String, T)>>(buckets: &mut It) -> Histogram {
+        return Histogram { buckets: buckets.map( |(title, x)| (title, x.into())).collect(), ..Default::default() }
     }
 
     pub fn new_indexed_it<T: Into<i64> + Copy, It: Iterator<Item = T>>(buckets: &mut It) -> Histogram {

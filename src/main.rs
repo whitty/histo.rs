@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     match &args.command {
         Commands::Simple(_) => {
             let data = histo::data::simple_load(args.input);
-            let g = histo::graph::Histogram::new_it(&mut data.iter().map(|(x,v)| (*v, x.to_string())))
+            let g = histo::graph::Histogram::new_it(&mut data.into_iter())
                 .set_auto_geometry(args.height).draw();
             println!("{}", g);
         },
