@@ -1,5 +1,7 @@
 use std::io::{Error, BufRead, ErrorKind::NotFound};
 use std::collections::VecDeque;
+use regex::Regex;
+use rust_decimal::prelude::*;
 
 type InputType = std::io::BufReader<Box<dyn std::io::Read>>;
 type LinesT = std::io::Lines<InputType>;
@@ -84,6 +86,17 @@ impl Iterator for LineVisitor {
     }
 }
 
+fn time_from(s: &str, time_select: &Regex) -> Option<Decimal> {
+    if let Some(time_match) = time_select.captures(s) {
+        if let Some(time) = time_match.name("time").or_else(|| time_match.get(1)) {
+            if let Ok(d) = Decimal::from_str_exact(time.as_str()) {
+                return Some(d);
+            }
+        }
+    }
+    None
+}
+
 pub fn simple_load(inp: Vec<String>) ->std::collections::BTreeMap<String, i64> {
     let mut map = std::collections::BTreeMap::new();
     for x in LineVisitor::new(inp) {
@@ -91,4 +104,34 @@ pub fn simple_load(inp: Vec<String>) ->std::collections::BTreeMap<String, i64> {
         *val += 1;
     }
     map
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn default_time() -> Regex {
+        Regex::new(r"^(\d+\.\d+)").expect("regex failed to compile")
+    }
+
+    fn d(s: &str) -> Option<Decimal> {
+        if let Ok(d) = Decimal::from_str(s) {
+            return Some(d)
+        }
+        None
+    }
+
+    fn r(s: &str) -> Regex {
+        Regex::new(s).expect(format!("regex failed to compile '{}'", s).as_str())
+    }
+
+    #[test]
+    fn test_time_from() {
+        assert_eq!(time_from("0001.02: entry", &default_time()), d("1.02"));
+        assert_eq!(time_from("10001.123456789: entry", &default_time()), d("10001.123456789"));
+        assert_eq!(time_from("entry: 0001.02", &default_time()), None);
+        assert_eq!(time_from("entry: 0001.02", &r(r".$")), None);
+        assert_eq!(time_from("entry: 0001.02", &r(r"(.*) (\d+\.\d+)$")), None);
+        assert_eq!(time_from("entry: 0001.02", &r(r"(.*) (?<time>\d+\.\d+)$")), d("1.02"));
+    }
 }
