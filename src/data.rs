@@ -97,6 +97,28 @@ fn time_from(s: &str, time_select: &Regex) -> Option<Decimal> {
     None
 }
 
+fn time_diff_parse<I>(inp: I, time_select: &Regex) -> Vec<Decimal>
+where
+    I: Iterator<Item = String>
+{
+    let mut v: Vec<Decimal> = vec![];
+    let mut prev: Option<Decimal> = None;
+    for x in inp {
+        let time = time_from(x.as_str(), time_select);
+        if let Some(now) = time {
+            if let Some(p) = prev {
+                v.push(now - p);
+            }
+            prev = time;
+        }
+    }
+    v
+}
+
+pub fn time_diff_load(inp: Vec<String>, time_select: &Regex) -> Vec<Decimal> {
+    time_diff_parse(LineVisitor::new(inp), time_select)
+}
+
 pub fn simple_load(inp: Vec<String>) ->std::collections::BTreeMap<String, i64> {
     let mut map = std::collections::BTreeMap::new();
     for x in LineVisitor::new(inp) {
@@ -133,5 +155,23 @@ mod tests {
         assert_eq!(time_from("entry: 0001.02", &r(r".$")), None);
         assert_eq!(time_from("entry: 0001.02", &r(r"(.*) (\d+\.\d+)$")), None);
         assert_eq!(time_from("entry: 0001.02", &r(r"(.*) (?<time>\d+\.\d+)$")), d("1.02"));
+    }
+
+    fn dec_v(v :Vec<&str>) -> Vec<Decimal> {
+        v.iter().map(|x| Decimal::from_str_exact(x).unwrap()).collect()
+    }
+
+    #[test]
+    fn test_diff_parse() {
+        let d = include_str!("../tests/example.txt");
+
+        assert_eq!(time_diff_parse(d.split('\n').map(|x| x.to_string()), &default_time()),
+                   dec_v(vec![
+                       "576.1890", "161.7767", "120.1351", "42.0575", "953.7649",
+                       "42.0574", "1079.9571", "102.1173", "306.1201", "107.9229",
+                       "203.8183", "678.3242", "221.6361", "1248.1245", "383.9979",
+                       "635.8485", "60.2755", "317.7319", "1890.1634", "390.0038",
+                       "545.7759", "228.0426", "270.0844", "629.8757", "2892.1272",
+                       "396.0098", "785.7978", "204.2189", "545.9591", "143.7864"]));
     }
 }
