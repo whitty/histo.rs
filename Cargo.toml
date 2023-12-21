@@ -11,3 +11,4 @@ asciigraph = "^0.6.0"
 clap = { version = "=4.0.32", features = ["derive"] }
 clap_lex = { version = "=0.3.0" }
 regex = { version = "=1.9.6" }
+rust_decimal = "1.33.1"
