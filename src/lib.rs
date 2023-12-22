@@ -1,5 +1,6 @@
 pub mod data;
 pub mod graph;
-mod error;
+pub mod error;
 
+pub type Error = error::Error;
 type Result<T> = std::result::Result<T, error::Error>;
