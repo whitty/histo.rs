@@ -21,6 +21,13 @@ setup() {
   "$histo" --help
 }
 
+@test "--help includes some info about commands" {
+  "$histo" --help
+  "$histo" --help | grep -q "simple *Simple histogram"
+  "$histo" --help | grep -q "select *Simple histogram of data selected .* by regex"
+  "$histo" --help | grep -q "time-diff *.*distribution of difference betewen adjacent time stamps"
+}
+
 @test "simple" {
   # TODO - check the output - I don't think its very good
   run "$histo" simple "$test_dir"/seq.txt
@@ -35,6 +42,22 @@ setup() {
 
 @test "simple with invalid filter" {
   run "$histo" simple --match "\u" "$test_dir"/seq.txt
+  [ "$status" -ne 0 ]
+}
+
+@test "simple select" {
+  # TODO - check the output
+  run "$histo" select "\((\d+\.\d+)\)" "$test_dir"/example.txt
+  [ "$status" -eq 0 ]
+}
+
+@test "simple select with invalid filter" {
+  run "$histo" select "\((\d+\.\u+)\)" "$test_dir"/example.txt
+  [ "$status" -ne 0 ]
+}
+
+@test "simple select with no matching data" {
+  run "$histo" select "\((\d+\.\d+\.)\)" "$test_dir"/example.txt
   [ "$status" -ne 0 ]
 }
 
