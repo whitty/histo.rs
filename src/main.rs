@@ -28,8 +28,8 @@ enum Commands {
 #[derive(clap::Args, Debug)]
 struct Simple {
     /// Optional regex to match values
-    #[arg(long = "match")]
-    match_: Option<String>,
+    #[arg(long = "match", value_parser = regexp)]
+    match_: Option<Regex>,
 }
 
 #[derive(clap::Args, Debug)]
@@ -48,9 +48,17 @@ struct TimeDiff {
 }
 
 fn regexp_with_one_match(s: &str) -> Result<Regex, String> {
+    let re = regexp(s)?;
+    // captures_len == 1 for the implicit "all" capture, > 1 for one match
+    if re.captures_len() <= 1 {
+        return Err(String::from("Need at least one regex match"));
+    }
+    Ok(re)
+}
+
+fn regexp(s: &str) -> Result<Regex, String> {
     let re = Regex::new(s)
         .map_err(|e| e.to_string())?;
-    // TODO check the number of matches
     Ok(re)
 }
 
@@ -65,8 +73,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Options::parse();
 
     match &args.command {
-        Commands::Simple(_) => {
-            let data = histo::data::simple_load(args.input);
+        Commands::Simple(a) => {
+            let data = histo::data::simple_load_w_filter(args.input, &a.match_);
             if data.is_empty() {
                 no_data_err()?;
             }
