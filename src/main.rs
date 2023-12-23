@@ -48,7 +48,7 @@ struct Select {
     ///
     /// If there are multiple captures the first will be used
     /// unless one is named "select".
-    #[arg(value_parser = regexp)]
+    #[arg(value_parser = regexp_with_one_match)]
     selector: Regex,
 }
 

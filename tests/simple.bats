@@ -56,6 +56,12 @@ setup() {
   [ "$status" -ne 0 ]
 }
 
+@test "simple select with no capture" {
+  run "$histo" select ".+" "$test_dir"/example.txt
+  [ "$status" -ne 0 ]
+  echo "$output" | grep "Need at least one regex match"
+}
+
 @test "simple select with no matching data" {
   run "$histo" select "\((\d+\.\d+\.)\)" "$test_dir"/example.txt
   [ "$status" -ne 0 ]
