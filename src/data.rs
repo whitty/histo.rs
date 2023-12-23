@@ -120,8 +120,25 @@ pub fn time_diff_load(inp: Vec<String>, time_select: &Regex) -> Vec<Decimal> {
 }
 
 pub fn simple_load(inp: Vec<String>) ->std::collections::BTreeMap<String, i64> {
+    simple_load_w_filter(inp, &None)
+}
+
+pub fn simple_load_w_filter(inp: Vec<String>, filter_reg: &Option<Regex>) ->std::collections::BTreeMap<String, i64> {
+    simple_load_w_filter_in(LineVisitor::new(inp), filter_reg)
+}
+
+// Actual implementation of simple loads
+fn simple_load_w_filter_in<I>(inp: I, filter_reg: &Option<Regex>) ->std::collections::BTreeMap<String, i64>
+where
+    I: Iterator<Item = String>
+{
     let mut map = std::collections::BTreeMap::new();
-    for x in LineVisitor::new(inp) {
+    for x in inp {
+        if let Some(filter) = filter_reg {
+            if !filter.is_match(&x) {
+                continue
+            }
+        }
         let val = map.entry(x).or_insert(0);
         *val += 1;
     }
@@ -147,6 +164,10 @@ mod tests {
         Regex::new(s).expect(format!("regex failed to compile '{}'", s).as_str())
     }
 
+    fn ro(s: &str) -> Option<Regex> {
+        Some(r(s))
+    }
+
     #[test]
     fn test_time_from() {
         assert_eq!(time_from("0001.02: entry", &default_time()), d("1.02"));
@@ -155,6 +176,7 @@ mod tests {
         assert_eq!(time_from("entry: 0001.02", &r(r".$")), None);
         assert_eq!(time_from("entry: 0001.02", &r(r"(.*) (\d+\.\d+)$")), None);
         assert_eq!(time_from("entry: 0001.02", &r(r"(.*) (?<time>\d+\.\d+)$")), d("1.02"));
+        assert_eq!(time_from("0001.02", &r(r"\d")), None);
     }
 
     fn dec_v(v :Vec<&str>) -> Vec<Decimal> {
@@ -173,5 +195,25 @@ mod tests {
                        "635.8485", "60.2755", "317.7319", "1890.1634", "390.0038",
                        "545.7759", "228.0426", "270.0844", "629.8757", "2892.1272",
                        "396.0098", "785.7978", "204.2189", "545.9591", "143.7864"]));
+
+        assert_eq!(time_diff_parse(d.split('\n').map(|x| x.to_string()), &r(r"(\d+)")),
+                   dec_v(vec![
+                       "577", "161", "121", "42", "953", "42", "1080",
+                       "102", "307", "108", "203", "679", "221",
+                       "1248", "384", "636", "61", "317", "1890",
+                       "390", "546", "228", "270", "630", "2892",
+                       "396", "786", "204", "546", "144"
+                   ]));
+    }
+
+    #[test]
+    fn test_simple_load() {
+        let d = include_str!("../tests/seq.txt");
+        let data = simple_load_w_filter_in(d.split('\n').map(|x| x.to_string()), &None);
+        assert_eq!(data.len(), 21); // 1..20 + empty line
+        assert!(data.into_values().all(|x| x == 1)); // all values are unique
+
+        let data = simple_load_w_filter_in(d.split('\n').map(|x| x.to_string()), &ro("2"));
+        assert_eq!(data.len(), 3); // 20, 12, 2
     }
 }
