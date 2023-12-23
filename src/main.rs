@@ -27,7 +27,8 @@ enum Commands {
 
 #[derive(clap::Args, Debug)]
 struct Simple {
-    /// Optional regex to match values
+    /// Optional regex to match values - ie filter out values that
+    /// don't match
     #[arg(long = "match", value_parser = regexp)]
     match_: Option<Regex>,
 }
@@ -45,6 +46,11 @@ struct TimeDiff {
     ///  - eg "(.*) (?<time>\d+\.\d+)$"
     #[arg(long, value_name="regexp", value_parser = regexp_with_one_match, default_value=r"^(\d+\.\d+)")]
     time_select: Regex,
+
+    /// Optional regex to match values - ie filter out values that
+    /// don't match
+    #[arg(long = "match", value_parser = regexp)]
+    match_: Option<Regex>,
 }
 
 fn regexp_with_one_match(s: &str) -> Result<Regex, String> {
@@ -83,7 +89,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", g);
         },
         Commands::TimeDiff(a) => {
-            let data = histo::data::time_diff_load(args.input, &a.time_select);
+            let data = histo::data::time_diff_load(args.input, &a.time_select, &a.match_);
             if data.is_empty() {
                 no_data_err()?;
             }

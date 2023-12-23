@@ -97,13 +97,18 @@ fn time_from(s: &str, time_select: &Regex) -> Option<Decimal> {
     None
 }
 
-fn time_diff_parse<I>(inp: I, time_select: &Regex) -> Vec<Decimal>
+fn time_diff_parse<I>(inp: I, time_select: &Regex, filter_reg: &Option<Regex>) -> Vec<Decimal>
 where
     I: Iterator<Item = String>
 {
     let mut v: Vec<Decimal> = vec![];
     let mut prev: Option<Decimal> = None;
     for x in inp {
+        if let Some(filter) = filter_reg {
+            if !filter.is_match(&x) {
+                continue
+            }
+        }
         let time = time_from(x.as_str(), time_select);
         if let Some(now) = time {
             if let Some(p) = prev {
@@ -115,8 +120,8 @@ where
     v
 }
 
-pub fn time_diff_load(inp: Vec<String>, time_select: &Regex) -> Vec<Decimal> {
-    time_diff_parse(LineVisitor::new(inp), time_select)
+pub fn time_diff_load(inp: Vec<String>, time_select: &Regex, filter_reg: &Option<Regex>) -> Vec<Decimal> {
+    time_diff_parse(LineVisitor::new(inp), time_select, filter_reg)
 }
 
 pub fn simple_load(inp: Vec<String>) ->std::collections::BTreeMap<String, i64> {
@@ -187,7 +192,7 @@ mod tests {
     fn test_diff_parse() {
         let d = include_str!("../tests/example.txt");
 
-        assert_eq!(time_diff_parse(d.split('\n').map(|x| x.to_string()), &default_time()),
+        assert_eq!(time_diff_parse(d.split('\n').map(|x| x.to_string()), &default_time(), &None),
                    dec_v(vec![
                        "576.1890", "161.7767", "120.1351", "42.0575", "953.7649",
                        "42.0574", "1079.9571", "102.1173", "306.1201", "107.9229",
@@ -196,7 +201,7 @@ mod tests {
                        "545.7759", "228.0426", "270.0844", "629.8757", "2892.1272",
                        "396.0098", "785.7978", "204.2189", "545.9591", "143.7864"]));
 
-        assert_eq!(time_diff_parse(d.split('\n').map(|x| x.to_string()), &r(r"(\d+)")),
+        assert_eq!(time_diff_parse(d.split('\n').map(|x| x.to_string()), &r(r"(\d+)"), &None),
                    dec_v(vec![
                        "577", "161", "121", "42", "953", "42", "1080",
                        "102", "307", "108", "203", "679", "221",
@@ -204,6 +209,14 @@ mod tests {
                        "390", "546", "228", "270", "630", "2892",
                        "396", "786", "204", "546", "144"
                    ]));
+
+        assert_eq!(time_diff_parse(d.split('\n').map(|x| x.to_string()), &default_time(), &ro("ABC")),
+                   dec_v(vec![]));
+
+        assert_eq!(time_diff_parse(d.split('\n').map(|x| x.to_string()), &default_time(), &ro(r"^\d{5}")),
+                   dec_v(vec![ "390.0038",
+                       "545.7759", "228.0426", "270.0844", "629.8757", "2892.1272",
+                       "396.0098", "785.7978", "204.2189", "545.9591", "143.7864"]));
     }
 
     #[test]
