@@ -13,6 +13,7 @@ for (ver in build_os_vers) {
 
         stage("${version}-preparation") {
           src = checkout(scm)
+          sh "sudo apt install -y bats"
         }
 
         for (rev in ['', '-norestrict']) {
@@ -48,6 +49,12 @@ for (ver in build_os_vers) {
               warnError("run") {
                 sh "cargo run -- $cmd"
               }
+            }
+          }
+
+          if (rev == "") {
+            stage("${version}-bats") {
+              sh "bats tests/"
             }
           }
 
