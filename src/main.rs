@@ -22,6 +22,9 @@ struct Options {
 enum Commands {
     /// Simple histogram of frequencies
     Simple(Simple),
+    /// Simple histogram of data selected (extracted) by regex.
+    Select(Select),
+    /// Plot distribution of difference betewen adjacent time stamps.
     TimeDiff(TimeDiff),
 }
 
@@ -33,15 +36,32 @@ struct Simple {
     match_: Option<Regex>,
 }
 
+/// Simple histogram of data selected (extracted) by regex.
+///
+/// If a line doesn't match it is dropped from the histogram
 #[derive(clap::Args, Debug)]
-struct TimeDiff {
-    /// Optional regex to extract time values for comparison
+struct Select {
+    /// regex to select value to plot.
     ///
     /// Must include a capture - ie parens () to extract the time
     /// field.
     ///
     /// If there are multiple captures the first will be used
-    /// unless one is named "time"
+    /// unless one is named "select".
+    #[arg(value_parser = regexp)]
+    selector: Regex,
+}
+
+#[derive(clap::Args, Debug)]
+struct TimeDiff {
+    /// Optional regex to extract time values for comparison.
+    /// Currently only supports decimal numbers for times.
+    ///
+    /// Must include a capture - ie parens () to extract the time
+    /// field.
+    ///
+    /// If there are multiple captures the first will be used
+    /// unless one is named "time".
     ///
     ///  - eg "(.*) (?<time>\d+\.\d+)$"
     #[arg(long, value_name="regexp", value_parser = regexp_with_one_match, default_value=r"^(\d+\.\d+)")]
@@ -81,6 +101,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     match &args.command {
         Commands::Simple(a) => {
             let data = histo::data::simple_load_w_filter(args.input, &a.match_);
+            if data.is_empty() {
+                no_data_err()?;
+            }
+            let g = histo::graph::Histogram::new_it(&mut data.into_iter())
+                .set_auto_geometry(args.height).draw();
+            println!("{}", g);
+        },
+        Commands::Select(a) => {
+            let data = histo::data::select_load(args.input, &a.selector);
             if data.is_empty() {
                 no_data_err()?;
             }
