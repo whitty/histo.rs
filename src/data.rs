@@ -7,13 +7,13 @@ type InputType = std::io::BufReader<Box<dyn std::io::Read>>;
 type LinesT = std::io::Lines<InputType>;
 
 // Cat-like access to lines
-pub struct LineVisitor {
+struct LineVisitor {
     input: VecDeque<String>,
     curr: Option<LinesT>,
 }
 
 impl LineVisitor {
-    pub fn new(inp: Vec<String>) -> LineVisitor {
+    fn new(inp: Vec<String>) -> LineVisitor {
         if inp.is_empty() {
             // return stdin
             return LineVisitor { input: VecDeque::new(), curr: open_stdio() };
@@ -132,6 +132,26 @@ pub fn simple_load_w_filter(inp: Vec<String>, filter_reg: &Option<Regex>) ->std:
     simple_load_w_filter_in(LineVisitor::new(inp), filter_reg)
 }
 
+pub fn select_load(inp: Vec<String>, selector: &Regex) ->std::collections::BTreeMap<String, i64> {
+    select_load_in(LineVisitor::new(inp), selector)
+}
+
+fn apply_selector(s: String, selector: &Regex) -> Option<String> {
+    if let Some(c) = selector.captures(s.as_str()) {
+        if let Some(select) = c.name("select").or_else(|| c.get(1)) {
+            return Some(String::from(select.as_str()))
+        }
+    }
+    None
+}
+
+fn select_load_in<I>(inp: I, selector: &Regex) ->std::collections::BTreeMap<String, i64>
+where
+    I: Iterator<Item = String>
+{
+    simple_load_w_filter_in(inp.filter_map(|s| apply_selector(s, selector)), &None)
+}
+
 // Actual implementation of simple loads
 fn simple_load_w_filter_in<I>(inp: I, filter_reg: &Option<Regex>) ->std::collections::BTreeMap<String, i64>
 where
@@ -152,6 +172,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use super::*;
 
     fn default_time() -> Regex {
@@ -228,5 +250,18 @@ mod tests {
 
         let data = simple_load_w_filter_in(d.split('\n').map(|x| x.to_string()), &ro("2"));
         assert_eq!(data.len(), 3); // 20, 12, 2
+    }
+
+    #[test]
+    fn test_select_load() {
+        let d = include_str!("../tests/seq.txt");
+        let data = select_load_in(d.split('\n').map(|x| x.to_string()), &r(r"\d([0-4])"));
+        assert_eq!(data, BTreeMap::from([
+            (String::from("0"), 2), // 10, 20
+            (String::from("1"), 1), // 11
+            (String::from("2"), 1), // 12
+            (String::from("3"), 1), // 13
+            (String::from("4"), 1), // 14
+        ]));
     }
 }
