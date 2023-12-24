@@ -23,9 +23,9 @@ setup() {
 
 @test "--help includes some info about commands" {
   "$histo" --help
-  "$histo" --help | grep -q "simple *Simple histogram"
-  "$histo" --help | grep -q "select *Simple histogram of data selected .* by regex"
-  "$histo" --help | grep -q "time-diff *.*distribution of difference betewen adjacent time stamps"
+  "$histo" --help | sed '/simple/ {N;s/\n//'} | grep -q "simple *Simple histogram"
+  "$histo" --help | sed '/select/ {N;s/\n//'} | grep -q "select *Simple histogram of data selected .* by regex"
+  "$histo" --help | sed '/time-diff/ {N;s/\n//'} | grep -q "time-diff *.*distribution of difference betewen adjacent time stamps"
 }
 
 @test "simple" {

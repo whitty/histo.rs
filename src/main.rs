@@ -13,7 +13,9 @@ struct Options {
     #[arg(long, default_value_t=40, global=true)]
     height: usize,
 
-    /// Input file(s)
+    /// Input file(s), or if omitted use stdin.
+    ///
+    /// Use '-' for stdin
     #[arg(action = Append, global=true)]
     input: Vec<String>,
 }
