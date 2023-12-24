@@ -78,3 +78,20 @@ setup() {
   run "$histo" time-diff --time-select='\((\d+\.\d+)\)' "$test_dir"/example.txt
   [ "$status" -eq 0 ]
 }
+
+@test "scoped recuse" {
+  # TODO - check the output - I don't think its very good
+  "$histo" scoped --scope-in="->recurse" --scope-out="<-recurse" "$test_dir"/example_scoped.txt
+}
+
+@test "scoped arg conflict" {
+  # TODO - check the output - I don't think its very good
+  run "$histo" scoped --scope-in="->recurse" --scope-match="<-recurse" "$test_dir"/example_scoped.txt
+  [ "$status" -ne 0 ]
+}
+
+@test "scoped arg requires" {
+  # TODO - check the output - I don't think its very good
+  run "$histo" scoped --scope-in="->recurse" "$test_dir"/example_scoped.txt
+  [ "$status" -ne 0 ]
+}
