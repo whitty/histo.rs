@@ -95,39 +95,37 @@ fn no_data_err() -> Result<(), histo::error::Error> {
     Err(err)
 }
 
+fn print_histo(data: std::collections::BTreeMap<String, i64>, args: &Options) -> Result<(), histo::error::Error> {
+    if data.is_empty() {
+        no_data_err()?;
+    }
+    let g = histo::graph::Histogram::new_it(&mut data.into_iter())
+        .set_auto_geometry(args.height).draw();
+    println!("{}", g);
+    Ok(())
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Options::parse();
 
     match &args.command {
         Commands::Simple(a) => {
-            let data = histo::data::simple_load_w_filter(args.input, &a.match_);
-            if data.is_empty() {
-                no_data_err()?;
-            }
-            let g = histo::graph::Histogram::new_it(&mut data.into_iter())
-                .set_auto_geometry(args.height).draw();
-            println!("{}", g);
+            let data = histo::data::simple_load_w_filter(args.input.clone(), &a.match_);
+            print_histo(data, &args)?;
         },
         Commands::Select(a) => {
-            let data = histo::data::select_load(args.input, &a.selector);
-            if data.is_empty() {
-                no_data_err()?;
-            }
-            let g = histo::graph::Histogram::new_it(&mut data.into_iter())
-                .set_auto_geometry(args.height).draw();
-            println!("{}", g);
+            let data = histo::data::select_load(args.input.clone(), &a.selector);
+            print_histo(data, &args)?;
         },
         Commands::TimeDiff(a) => {
-            let data = histo::data::time_diff_load(args.input, &a.time_select, &a.match_);
+            let data = histo::data::time_diff_load(args.input.clone(), &a.time_select, &a.match_);
             if data.is_empty() {
                 no_data_err()?;
             }
             let data = histo::graph::Buckets::default()
                 .analyse(&data)
                 .generate(&data);
-            let g = histo::graph::Histogram::new_it(&mut data.into_iter())
-                .set_auto_geometry(args.height).draw();
-            println!("{}", g);
+            print_histo(data, &args)?;
         }
     }
 
