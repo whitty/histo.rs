@@ -26,6 +26,8 @@ enum Commands {
     Select(Select),
     /// Plot distribution of difference betewen adjacent time stamps.
     TimeDiff(TimeDiff),
+    /// Plot distribution of difference scoped "in and out" matches
+    Scoped(Scoped),
 }
 
 #[derive(clap::Args, Debug)]
@@ -84,6 +86,37 @@ struct TimeDiff {
     optional_match: OptionalMatchArgs,
 }
 
+#[derive(clap::Args, Debug)]
+struct Scoped {
+    #[command(flatten)]
+    selections: ScopedSelections,
+
+    #[command(flatten)]
+    time_selector: TimeSelector,
+}
+
+#[derive(clap::Args, Debug)]
+#[command(group(clap::ArgGroup::new("one_required")
+                .multiple(false)
+                .required(true)
+                .args(["scope_in", "scope_match"])))]
+struct ScopedSelections {
+
+    /// Regex to match for in and out entries in order to determine start/end time.
+    ///
+    /// TODO - work out what's going on
+    #[arg(short = 'm', long, value_name="regexp", value_parser = regexp, conflicts_with_all(["scope_in", "scope_out"]))]
+    scope_match: Option<Regex>,
+
+    /// Regex to match in entries in order to determine start time.
+    #[arg(short = 'i', long, value_name="regexp", value_parser = regexp, requires("scope_out"))]
+    scope_in: Option<Regex>,
+
+    /// Regex to match out entries in order to determine end time.
+    #[arg(short = 'o', long, value_name="regexp", value_parser = regexp, requires("scope_in"))]
+    scope_out: Option<Regex>,
+}
+
 fn regexp_with_one_match(s: &str) -> Result<Regex, String> {
     let re = regexp(s)?;
     // captures_len == 1 for the implicit "all" capture, > 1 for one match
@@ -140,6 +173,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         Commands::TimeDiff(a) => {
             let data = histo::data::time_diff_load(args.input.clone(), &a.time_selector.time_select, &a.optional_match.match_);
+            handle_time_buckets(data, &args)?;
+        }
+        Commands::Scoped(a) => {
+            let data = histo::data::scoped_time_load(args.input.clone(), &a.time_selector.time_select,
+                                                     &a.selections.scope_in.as_ref().expect("Must exist --scope-match not yet implemented"),
+                                                     &a.selections.scope_out.as_ref().expect("Must exist --scope-match not yet implemented"));
             handle_time_buckets(data, &args)?;
         }
     }
