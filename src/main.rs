@@ -116,6 +116,16 @@ fn print_histo(data: std::collections::BTreeMap<String, i64>, args: &Options) ->
     Ok(())
 }
 
+fn handle_time_buckets(data: Vec<rust_decimal::Decimal>, args: &Options) -> Result<(), histo::error::Error> {
+    if data.is_empty() {
+        no_data_err()?;
+    }
+    let data = histo::graph::Buckets::default()
+        .analyse(&data)
+        .generate(&data);
+    print_histo(data, &args)
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Options::parse();
 
@@ -130,13 +140,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         Commands::TimeDiff(a) => {
             let data = histo::data::time_diff_load(args.input.clone(), &a.time_selector.time_select, &a.optional_match.match_);
-            if data.is_empty() {
-                no_data_err()?;
-            }
-            let data = histo::graph::Buckets::default()
-                .analyse(&data)
-                .generate(&data);
-            print_histo(data, &args)?;
+            handle_time_buckets(data, &args)?;
         }
     }
 
