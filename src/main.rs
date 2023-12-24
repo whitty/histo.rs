@@ -29,11 +29,17 @@ enum Commands {
 }
 
 #[derive(clap::Args, Debug)]
-struct Simple {
+struct OptionalMatchArgs {
     /// Optional regex to match values - ie filter out values that
     /// don't match
     #[arg(long = "match", value_parser = regexp)]
     match_: Option<Regex>,
+}
+
+#[derive(clap::Args, Debug)]
+struct Simple {
+    #[command(flatten)]
+    optional_match: OptionalMatchArgs,
 }
 
 /// Simple histogram of data selected (extracted) by regex.
@@ -52,8 +58,9 @@ struct Select {
     selector: Regex,
 }
 
+// Common implementation shared via flatten
 #[derive(clap::Args, Debug)]
-struct TimeDiff {
+struct TimeSelector {
     /// Optional regex to extract time values for comparison.
     /// Currently only supports decimal numbers for times.
     ///
@@ -66,11 +73,15 @@ struct TimeDiff {
     ///  - eg "(.*) (?<time>\d+\.\d+)$"
     #[arg(long, value_name="regexp", value_parser = regexp_with_one_match, default_value=r"^(\d+\.\d+)")]
     time_select: Regex,
+}
 
-    /// Optional regex to match values - ie filter out values that
-    /// don't match
-    #[arg(long = "match", value_parser = regexp)]
-    match_: Option<Regex>,
+#[derive(clap::Args, Debug)]
+struct TimeDiff {
+    #[command(flatten)]
+    time_selector: TimeSelector,
+
+    #[command(flatten)]
+    optional_match: OptionalMatchArgs,
 }
 
 fn regexp_with_one_match(s: &str) -> Result<Regex, String> {
@@ -110,7 +121,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match &args.command {
         Commands::Simple(a) => {
-            let data = histo::data::simple_load_w_filter(args.input.clone(), &a.match_);
+            let data = histo::data::simple_load_w_filter(args.input.clone(), &a.optional_match.match_);
             print_histo(data, &args)?;
         },
         Commands::Select(a) => {
@@ -118,7 +129,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             print_histo(data, &args)?;
         },
         Commands::TimeDiff(a) => {
-            let data = histo::data::time_diff_load(args.input.clone(), &a.time_select, &a.match_);
+            let data = histo::data::time_diff_load(args.input.clone(), &a.time_selector.time_select, &a.optional_match.match_);
             if data.is_empty() {
                 no_data_err()?;
             }
