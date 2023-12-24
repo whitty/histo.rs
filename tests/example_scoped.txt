@@ -1,0 +1,25 @@
+1110.9106: ->reset
+1687.0996: ->waitReset
+1848.8763: reset delay
+1969.0114: <-waitReset
+2011.0689: <-reset
+2964.8338: ->other
+3006.8912: ->reset
+4086.8483: ->waitReset
+4188.9656: reset delay
+4495.0857: <-waitReset
+4603.0086: ->reset
+4806.8269: <-reset
+5485.1511: <-other
+5706.7872: ->recurse
+6954.9117: ->recurse
+7338.9096: ->other
+7974.7581: ->recurse
+8035.0336: <-recurse
+8352.7655: <-other
+10242.9289: <-recurse
+10632.9327: ->other
+11178.7086: <-other
+11406.7512: <-recurse
+11676.8356: ->recurse
+11677.8356: <-recurse

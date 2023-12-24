@@ -170,6 +170,38 @@ where
     map
 }
 
+pub fn scoped_time_load(inp: Vec<String>, time_select: &Regex, scoped_in: &Regex, scoped_out: &Regex) -> Vec<Decimal> {
+    scoped_time_parse(LineVisitor::new(inp), time_select, scoped_in, scoped_out)
+}
+
+fn scoped_time_parse<I>(inp: I, time_select: &Regex, scoped_in: &Regex, scoped_out: &Regex) -> Vec<Decimal>
+where
+    I: Iterator<Item = String>
+{
+    let mut v: Vec<Decimal> = vec![];
+    let mut prev: Vec<Decimal> = vec![];
+    println!("scoped_time_parse");
+    for x in inp {
+        let time = time_from(x.as_str(), time_select);
+        if let Some(now) = time {
+            if scoped_in.is_match(&x) {
+                println!("in={}", x);
+                prev.push(now);
+            } else if scoped_out.is_match(&x) {
+                print!("out={}", x);
+                if let Some(then) = prev.pop() {
+                    println!(" then={} time={}", then, now - then);
+                    v.push(now - then);
+                } else {
+                    println!(" not matched");
+                }
+            }
+        }
+    }
+    v
+}
+
+
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
@@ -263,5 +295,17 @@ mod tests {
             (String::from("3"), 1), // 13
             (String::from("4"), 1), // 14
         ]));
+    }
+
+    #[test]
+    fn test_scoped_load_simple_in_out() {
+        let d = include_str!("../tests/example_scoped.txt");
+        let data = scoped_time_parse(d.split('\n').map(|x| x.to_string()), &default_time(),
+                                     &r(r"->reset"), &r(r"<-reset"));
+        assert_eq!(data, dec_v(vec![ "900.1583", "203.8183",]));
+
+        let data = scoped_time_parse(d.split('\n').map(|x| x.to_string()), &default_time(),
+                                     &r(r"->recurse"), &r(r"<-recurse"));
+        assert_eq!(data, dec_v(vec![ "60.2755", "3288.0172", "5699.9640", "1.0000",]));
     }
 }
