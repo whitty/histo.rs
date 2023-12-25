@@ -78,6 +78,10 @@ struct TimeSelector {
     ///  - eg "(.*) (?<time>\d+\.\d+)$"
     #[arg(long, value_name="regexp", value_parser = regexp_with_one_match, default_value=r"^(\d+\.\d+)")]
     time_select: Regex,
+
+    /// Divide time series up by buckets of this length
+    #[arg(long, value_parser=parse_decimal)]
+    time_delta: Option<Decimal>,
 }
 
 #[derive(clap::Args, Debug)]
@@ -135,6 +139,14 @@ fn regexp(s: &str) -> Result<Regex, String> {
     Ok(re)
 }
 
+fn parse_decimal(s: &str) -> Result<Decimal, String> {
+    use std::str::FromStr;
+    if let Ok(d) = Decimal::from_str(s) {
+        return Ok(d)
+    }
+    Err(format!("Failed to parse {} as decimal", s))
+}
+
 // hmm,... the no data error doesn't print properly - so print it manually
 fn no_data_err() -> Result<(), histo::error::Error> {
     let err = histo::Error::no_data();
@@ -167,7 +179,14 @@ fn handle_time_buckets(data: Vec<Decimal>, args: &Options) -> Result<(), histo::
         no_data_err()?;
     }
 
+    let time_delta = match &args.command {
+        Commands::Simple(_) | Commands::Select(_) => { None }
+        Commands::TimeDiff(a) => { a.time_selector.time_delta }
+        Commands::Scoped(a) => { a.time_selector.time_delta }
+    };
+
     let data = histo::graph::Buckets::default()
+        .set_delta_opt(time_delta)
         .analyse(&data)
         .generate(&data);
     print_time_histo(data, &args)
