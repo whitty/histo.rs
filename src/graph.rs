@@ -72,6 +72,7 @@ pub struct Buckets {
     count : usize,
     min: Option<Decimal>,
     max: Option<Decimal>,
+    delta: Option<Decimal>,
 }
 
 impl Buckets {
@@ -80,21 +81,40 @@ impl Buckets {
         self
     }
 
-    pub fn analyse(&mut self, v: &Vec<Decimal>) -> &mut Self {
-        self.min = v.iter().min().map(|x| x.clone());
-        self.max = v.iter().max().map(|x| x.clone());
+    pub fn set_delta(&mut self, d: Decimal) -> &mut Self {
+        self.delta = Some(d);
         self
     }
 
-    pub fn linear_buckets(&self) -> Vec<(Decimal, Decimal, String)> {
+    pub fn set_delta_opt(&mut self, d: Option<Decimal>) -> &mut Self {
+        self.delta = d;
+        self
+    }
+
+    pub fn analyse(&mut self, v: &Vec<Decimal>) -> &mut Self {
+        self.min = v.iter().min().map(|x| x.clone());
+        self.max = v.iter().max().map(|x| x.clone());
+        if let (Some(delta), Some(min), Some(max)) = (self.delta, self.min, self.max) {
+            let min = (min / delta).floor() * delta;
+            let max = (max / delta).ceil() * delta;
+            self.count = ((max - min) / delta).floor().to_i32().unwrap() as usize; // TODO = + 1?
+            self.min = Some(min); self.max = Some(max);
+        }
+        self
+    }
+
+    fn linear_buckets(&self) -> Vec<(Decimal, Decimal, String)> {
         let span = self.max.expect("max not set") - self.min.expect("min not set");
         let delta = span / Decimal::new(self.count as i64, 0);
         let min = self.min.unwrap();
         let two = Decimal::new(2, 0);
-
-        (0..=self.count).map(|n| {
+        (0..self.count).map(|n| {
             let s = min + (Decimal::new(n as i64, 0) * delta);
-            (s, s + delta, (s + (delta / two)).to_string())
+            let mut e = s + delta;
+            if (n + 1) == self.count {
+                e = self.max.unwrap();
+            }
+            (s, e, (s + (delta / two)).to_string())
         }).collect()
     }
 
@@ -109,8 +129,13 @@ impl Buckets {
         let min = self.min.unwrap();
         for val in v {
             let x = ((val - min) / delta).floor();
-            let x = x.to_i32().unwrap() as usize;
-            assert!(x < buckets.len());
+            let mut x = x.to_i32().unwrap() as usize;
+            if x == buckets.len() && x >= 1 {
+                if val <= &buckets[x-1].1 {
+                    x -= 1;
+                }
+            }
+            assert!(x < buckets.len(), "x {} < buckets.len() {}", x, buckets.len());
             *map.get_mut(&buckets[x].2).unwrap() += 1;
         }
         map
@@ -123,6 +148,7 @@ impl Default for Buckets {
             count : 80,
             min: None,
             max: None,
+            delta: None,
         }
     }
 }
