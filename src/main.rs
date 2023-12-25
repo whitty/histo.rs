@@ -29,7 +29,8 @@ enum Commands {
     Select(Select),
     /// Plot distribution of difference betewen adjacent time stamps.
     TimeDiff(TimeDiff),
-    /// Plot distribution of difference scoped "in and out" matches
+
+    /// Plot distribution of difference between scoped "in and out" matches.
     Scoped(Scoped),
 }
 
