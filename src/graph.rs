@@ -118,11 +118,11 @@ impl Buckets {
         }).collect()
     }
 
-    pub fn generate(&self, v: &Vec<Decimal>) -> std::collections::BTreeMap<String, i64> {
+    pub fn generate(&self, v: &Vec<Decimal>) -> std::collections::BTreeMap<Decimal, i64> {
         let mut map = std::collections::BTreeMap::new();
         let buckets = self.linear_buckets();
         for b in &buckets {
-            map.entry(b.2.clone()).or_insert(0);
+            map.entry(b.1).or_insert(0);
         }
         let span = self.max.expect("max not set") - self.min.expect("min not set");
         let delta = span / Decimal::new(self.count as i64, 0);
@@ -136,7 +136,7 @@ impl Buckets {
                 }
             }
             assert!(x < buckets.len(), "x {} < buckets.len() {}", x, buckets.len());
-            *map.get_mut(&buckets[x].2).unwrap() += 1;
+            *map.get_mut(&buckets[x].1).unwrap() += 1;
         }
         map
     }

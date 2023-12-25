@@ -1,5 +1,6 @@
 use clap::{Parser, ArgAction::Append};
 use regex::Regex;
+use rust_decimal::Decimal;
 
 /// Quick and dirty analyzer for file generating histograms from
 /// log files and similar text-files
@@ -151,14 +152,25 @@ fn print_histo(data: std::collections::BTreeMap<String, i64>, args: &Options) ->
     Ok(())
 }
 
-fn handle_time_buckets(data: Vec<rust_decimal::Decimal>, args: &Options) -> Result<(), histo::error::Error> {
+fn print_time_histo(data: std::collections::BTreeMap<Decimal, i64>, args: &Options) -> Result<(), histo::error::Error> {
     if data.is_empty() {
         no_data_err()?;
     }
+    let g = histo::graph::Histogram::new_it(&mut data.into_iter().map(|(v,c)| (v.to_string(), c) ))
+        .set_auto_geometry(args.height).draw();
+    println!("{}", g);
+    Ok(())
+}
+
+fn handle_time_buckets(data: Vec<Decimal>, args: &Options) -> Result<(), histo::error::Error> {
+    if data.is_empty() {
+        no_data_err()?;
+    }
+
     let data = histo::graph::Buckets::default()
         .analyse(&data)
         .generate(&data);
-    print_histo(data, &args)
+    print_time_histo(data, &args)
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
