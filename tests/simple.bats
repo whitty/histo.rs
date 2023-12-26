@@ -79,19 +79,26 @@ setup() {
   [ "$status" -eq 0 ]
 }
 
-@test "scoped recuse" {
+@test "scoped: recurse" {
   # TODO - check the output - I don't think its very good
   "$histo" scoped --scope-in="->recurse" --scope-out="<-recurse" "$test_dir"/example_scoped.txt
 }
 
-@test "scoped arg conflict" {
-  # TODO - check the output - I don't think its very good
+@test "scoped: arg conflict" {
   run "$histo" scoped --scope-in="->recurse" --scope-match="<-recurse" "$test_dir"/example_scoped.txt
   [ "$status" -ne 0 ]
+  echo "$output" | grep -q "scope-in .* cannot be used with.*scope-match"
 }
 
-@test "scoped arg requires" {
+@test "scoped: missing required arg" {
   # TODO - check the output - I don't think its very good
   run "$histo" scoped --scope-in="->recurse" "$test_dir"/example_scoped.txt
   [ "$status" -ne 0 ]
+  echo "$output" | grep -q "The following required arguments were not provided"
+}
+
+@test "scoped: no match fails" {
+  run "$histo" scoped --scope-in="->output" --scope-out="<-input" "$test_dir"/example_scoped.txt
+  [ "$status" -ne 0 ]
+  echo "$output" | grep -q "No data found"
 }
