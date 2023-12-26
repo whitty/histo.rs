@@ -103,18 +103,17 @@ impl Buckets {
         self
     }
 
-    fn linear_buckets(&self) -> Vec<(Decimal, Decimal, String)> {
+    fn linear_buckets(&self) -> Vec<(Decimal, Decimal)> {
         let span = self.max.expect("max not set") - self.min.expect("min not set");
         let delta = span / Decimal::new(self.count as i64, 0);
         let min = self.min.unwrap();
-        let two = Decimal::new(2, 0);
         (0..self.count).map(|n| {
             let s = min + (Decimal::new(n as i64, 0) * delta);
             let mut e = s + delta;
             if (n + 1) == self.count {
                 e = self.max.unwrap();
             }
-            (s, e, (s + (delta / two)).to_string())
+            (s, e)
         }).collect()
     }
 
@@ -171,4 +170,55 @@ mod tests {
         assert_eq!(s, "451 |                                                \n    |                                                \n    |                     ▄▄▄▄▄▄▄                    \n394 |                     ███████                    \n    |                     ███████                    \n    |                     ███████                    \n337 |                     ███████                    \n    |              ▄▄▄▄▄▄▄███████                    \n    |              ██████████████                    \n280 |              ██████████████                    \n    |              ██████████████                    \n    |              ██████████████                    \n223 |              ██████████████                    \n    |       ████████████████████████████             \n    |       ████████████████████████████             \n166 |       ████████████████████████████             \n    |       ████████████████████████████             \n    |       ████████████████████████████             \n109 |██████████████████████████████████████████      \n    |██████████████████████████████████████████      \n    |██████████████████████████████████████████      \n 52 |██████████████████████████████████████████      \n    |██████████████████████████████████████████      \n    |██████████████████████████████████████████▄▄▄▄▄▄\n    └------------------------------------------------\n     1-5     6-10    11-15   16-20   21-25   25-30   \n");
     }
 
+    fn dec_v(v :&[&str]) -> Vec<Decimal> {
+        v.iter().map(|x| Decimal::from_str_exact(x).unwrap()).collect()
+    }
+
+    fn inc_range(begin: Decimal, delta: Decimal, count: usize) -> Vec<(Decimal, Decimal)> {
+        (0..count).map(|n| {
+            let s = begin + delta * Decimal::new(n as i64, 0);
+            (s, s + delta)
+        }).collect()
+    }
+    fn inc_range_s(begin: &str, delta: &str, count: usize) -> Vec<(Decimal, Decimal)> {
+        inc_range(Decimal::from_str_exact(begin).unwrap(),
+                  Decimal::from_str_exact(delta).unwrap(),
+                  count)
+    }
+
+    #[test]
+    fn test_linear_buckets() {
+        let data:Vec<Decimal> = dec_v(&["1.0", "4.0"]);
+        let buckets = Buckets::default()
+            .set_count(3)
+            .analyse(&data)
+            .linear_buckets();
+        assert_eq!(buckets.len(), 3);
+        assert_eq!(buckets, vec![
+            (Decimal::new(1,0), Decimal::new(2,0)),
+            (Decimal::new(2,0), Decimal::new(3,0)),
+            (Decimal::new(3,0), Decimal::new(4,0)),
+        ]);
+        assert_eq!(buckets, inc_range_s("1.0", "1.0", 3));
+
+        let buckets = Buckets::default()
+            .set_delta(Decimal::new(1,0))
+            .analyse(&data)
+            .linear_buckets();
+        assert_eq!(buckets, inc_range_s("1.0", "1.0", 3));
+
+        let data:Vec<Decimal> = dec_v(&["1.8", "3.1"]);
+        let buckets = Buckets::default()
+            .set_delta(Decimal::new(1,0))
+            .analyse(&data)
+            .linear_buckets();
+        assert_eq!(buckets, inc_range_s("1.0", "1.0", 3));
+
+        let data:Vec<Decimal> = dec_v(&["1.8", "4.1"]);
+        let buckets = Buckets::default()
+            .set_delta(Decimal::new(1,0))
+            .analyse(&data)
+            .linear_buckets();
+        assert_eq!(buckets, inc_range_s("1.0", "1.0", 4));
+    }
 }
