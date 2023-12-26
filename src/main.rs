@@ -149,33 +149,33 @@ fn parse_decimal(s: &str) -> Result<Decimal, String> {
 }
 
 // hmm,... the no data error doesn't print properly - so print it manually
-fn no_data_err() -> Result<(), histo::error::Error> {
-    let err = histo::Error::no_data();
+fn no_data_err() -> Result<(), histo_log::error::Error> {
+    let err = histo_log::Error::no_data();
     println!("{}", err.to_string());
     Err(err)
 }
 
-fn print_histo(data: std::collections::BTreeMap<String, i64>, args: &Options) -> Result<(), histo::error::Error> {
+fn print_histo(data: std::collections::BTreeMap<String, i64>, args: &Options) -> Result<(), histo_log::error::Error> {
     if data.is_empty() {
         no_data_err()?;
     }
-    let g = histo::graph::Histogram::new_it(&mut data.into_iter())
+    let g = histo_log::graph::Histogram::new_it(&mut data.into_iter())
         .set_auto_geometry(args.height).draw();
     println!("{}", g);
     Ok(())
 }
 
-fn print_time_histo(data: std::collections::BTreeMap<Decimal, i64>, args: &Options) -> Result<(), histo::error::Error> {
+fn print_time_histo(data: std::collections::BTreeMap<Decimal, i64>, args: &Options) -> Result<(), histo_log::error::Error> {
     if data.is_empty() {
         no_data_err()?;
     }
-    let g = histo::graph::Histogram::new_it(&mut data.into_iter().map(|(v,c)| (v.to_string(), c) ))
+    let g = histo_log::graph::Histogram::new_it(&mut data.into_iter().map(|(v,c)| (v.to_string(), c) ))
         .set_auto_geometry(args.height).draw();
     println!("{}", g);
     Ok(())
 }
 
-fn handle_time_buckets(data: Vec<Decimal>, args: &Options) -> Result<(), histo::error::Error> {
+fn handle_time_buckets(data: Vec<Decimal>, args: &Options) -> Result<(), histo_log::error::Error> {
     if data.is_empty() {
         no_data_err()?;
     }
@@ -186,7 +186,7 @@ fn handle_time_buckets(data: Vec<Decimal>, args: &Options) -> Result<(), histo::
         Commands::Scoped(a) => { a.time_selector.time_delta }
     };
 
-    let data = histo::graph::Buckets::default()
+    let data = histo_log::graph::Buckets::default()
         .set_delta_opt(time_delta)
         .analyse(&data)
         .generate(&data);
@@ -198,19 +198,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match &args.command {
         Commands::Simple(a) => {
-            let data = histo::data::simple_load_w_filter(args.input.clone(), &a.optional_match.match_);
+            let data = histo_log::data::simple_load_w_filter(args.input.clone(), &a.optional_match.match_);
             print_histo(data, &args)?;
         },
         Commands::Select(a) => {
-            let data = histo::data::select_load(args.input.clone(), &a.selector);
+            let data = histo_log::data::select_load(args.input.clone(), &a.selector);
             print_histo(data, &args)?;
         },
         Commands::TimeDiff(a) => {
-            let data = histo::data::time_diff_load(args.input.clone(), &a.time_selector.time_select, &a.optional_match.match_);
+            let data = histo_log::data::time_diff_load(args.input.clone(), &a.time_selector.time_select, &a.optional_match.match_);
             handle_time_buckets(data, &args)?;
         }
         Commands::Scoped(a) => {
-            let data = histo::data::scoped_time_load(args.input.clone(), &a.time_selector.time_select,
+            let data = histo_log::data::scoped_time_load(args.input.clone(), &a.time_selector.time_select,
                                                      &a.selections.scope_in.as_ref().expect("Must exist --scope-match not yet implemented"),
                                                      &a.selections.scope_out.as_ref().expect("Must exist --scope-match not yet implemented"));
             handle_time_buckets(data, &args)?;

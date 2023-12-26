@@ -7,7 +7,7 @@ setup_file() {
 
 setup() {
   # ensure executable exists
-  histo=target/debug/histo
+  histo=target/debug/histo-log
   test -x "$histo"
 
   test_dir=tests
