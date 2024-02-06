@@ -11,7 +11,8 @@ description: |
   rust packaging seems beyond my ability to wrestle the dependencies.
 
 base: core20
-confinement: classic
+confinement: strict
+grade: devel
 
 parts:
   histo-log:
@@ -21,3 +22,6 @@ parts:
 apps:
   histo-log:
     command: bin/histo-log
+    plugs:
+      - home
+      - removable-media
