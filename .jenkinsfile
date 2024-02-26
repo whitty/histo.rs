@@ -23,7 +23,11 @@ for (ver in build_os_vers) {
           }
 
           stage("${version}-check${rev}") {
-            sh "cargo check"
+            sh "cargo check --message-format json > target/report${rev}-${version}.log"
+            recordIssues(aggregatingResults: true, publishAllIssues: true,
+                         tools: [cargo(id: "cargo-check${rev}-${version}",
+                                       name: "Check ${version}${rev}",
+                                       pattern: "**/target/report${rev}-${version}.log")])
           }
 
           stage("${version}-test${rev}") {
@@ -34,7 +38,11 @@ for (ver in build_os_vers) {
 
           stage("${version}-clippy${rev}") {
             warnError("clippy") {
-              sh "cargo clippy"
+              sh "cargo clippy --message-format json > target/report${rev}-${version}.log"
+              recordIssues(aggregatingResults: true, publishAllIssues: true,
+                           tools: [cargo(id: "cargo-clippy${rev}-${version}",
+                                         name: "Clippy ${version}${rev}",
+                                         pattern: "**/target/report${rev}-${version}.log")])
             }
           }
 
