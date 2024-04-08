@@ -2,6 +2,11 @@ def build_os_vers = ["22.04", "24.04"]
 
 def parallel_versions = [:]
 
+def has_analyzer = [
+  '': false,
+  '-norestrict': true,
+]
+
 for (ver in build_os_vers) {
   def version = ver;
 
@@ -19,6 +24,10 @@ for (ver in build_os_vers) {
         for (rev in ['', '-norestrict']) {
 
           stage("${version}-build${rev}") {
+            if (rev == '') {
+              // TODO - in 24.04 or later rust the 1.63 toolchain doesn't install
+              sh "rustup toolchain add 1.63.0 --profile minimal"
+            }
             sh "cargo build"
           }
 
@@ -36,13 +45,15 @@ for (ver in build_os_vers) {
             }
           }
 
-          stage("${version}-clippy${rev}") {
-            warnError("clippy") {
-              sh "cargo clippy --message-format json > target/report${rev}-${version}.log"
-              recordIssues(aggregatingResults: true, publishAllIssues: true,
-                           tools: [cargo(id: "cargo-clippy${rev}-${version}",
-                                         name: "Clippy ${version}${rev}",
-                                         pattern: "**/target/report${rev}-${version}.log")])
+          if (has_analyzer[rev]) {
+            stage("${version}-clippy${rev}") {
+              warnError("clippy") {
+                sh "cargo clippy --message-format json > target/report${rev}-${version}.log"
+                recordIssues(aggregatingResults: true, publishAllIssues: true,
+                             tools: [cargo(id: "cargo-clippy${rev}-${version}",
+                                           name: "Clippy ${version}${rev}",
+                                           pattern: "**/target/report${rev}-${version}.log")])
+              }
             }
           }
 
