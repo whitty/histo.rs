@@ -2,24 +2,16 @@ use rust_decimal::prelude::*;
 
 use super::Result;
 
+#[derive(Default)]
 pub struct Histogram {
     buckets: Vec<(String, i64)>,
 
     geom: Option<(usize, usize)>,
 }
 
-impl Default for Histogram {
-    fn default() -> Self {
-        Self {
-            buckets: Default::default(),
-            geom: None,
-        }
-    }
-}
-
 impl Histogram {
 
-    pub fn new<T: Into<i64> + Copy>(buckets: &Vec<(T, &str)>) -> Histogram {
+    pub fn new<T: Into<i64> + Copy>(buckets: &[(T, &str)]) -> Histogram {
         return Self::new_it(&mut buckets.iter().map(|(x, title)| (title.to_string(), *x)));
     }
 
@@ -31,7 +23,7 @@ impl Histogram {
         Histogram { buckets: buckets.enumerate().map( |(ix, x)| (ix.to_string(), x.into())).collect(), ..Default::default() }
     }
 
-    pub fn new_indexed<T: Into<i64> + Copy>(buckets: &Vec<T>) -> Histogram {
+    pub fn new_indexed<T: Into<i64> + Copy>(buckets: &[T]) -> Histogram {
         return Self::new_indexed_it(&mut buckets.iter().copied());
     }
 
@@ -91,7 +83,7 @@ impl Buckets {
         self
     }
 
-    pub fn analyse(&mut self, v: &Vec<Decimal>) -> &mut Self {
+    pub fn analyse(&mut self, v: &[Decimal]) -> &mut Self {
         self.min = v.iter().min().copied();
         self.max = v.iter().max().copied();
         if let (Some(delta), Some(min), Some(max)) = (self.delta, self.min, self.max) {
@@ -130,6 +122,7 @@ impl Buckets {
             let x = ((val - min) / delta).floor();
             let mut x = x.to_i32().unwrap() as usize;
             if x == buckets.len() && x >= 1 {
+                // last value, but not first value
                 if val <= &buckets[x-1].1 {
                     x -= 1;
                 }

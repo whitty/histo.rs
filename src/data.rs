@@ -76,11 +76,10 @@ impl Iterator for LineVisitor {
                     reader.next()
                 }).unwrap_or(Err(Error::from(NotFound)));
 
-                if next.is_err() {
-                    self.curr = None;
-                } else {
-                    return Some(next.unwrap())
+                if let Ok(n) = next {
+                    return Some(n)
                 }
+                self.curr = None;
             }
         }
     }
