@@ -180,17 +180,13 @@ where
 {
     let mut v: Vec<Decimal> = vec![];
     let mut prev: Vec<Decimal> = vec![];
-    println!("scoped_time_parse");
     for x in inp {
         let time = time_from(x.as_str(), time_select);
         if let Some(now) = time {
             if scoped_in.is_match(&x) {
-                println!("in={}", x);
                 prev.push(now);
             } else if scoped_out.is_match(&x) {
-                print!("out={}", x);
                 if let Some(then) = prev.pop() {
-                    println!(" then={} time={}", then, now - then);
                     v.push(now - then);
                 } else {
                     println!(" not matched");
