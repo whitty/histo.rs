@@ -18,7 +18,7 @@ impl LineVisitor {
             // return stdin
             return LineVisitor { input: VecDeque::new(), curr: open_stdio() };
         }
-        return LineVisitor { input: VecDeque::from(inp), curr: None };
+        LineVisitor { input: VecDeque::from(inp), curr: None }
     }
 
     fn invalidate(&mut self) {
@@ -38,7 +38,7 @@ fn open(f: &String) -> Option<LinesT> {
     let file = std::fs::File::open(f);
     match file {
         Ok(f) => {
-            return Some(InputType::new(Box::new(f)).lines());
+            Some(InputType::new(Box::new(f)).lines())
         },
         Err(e) => {
             // TODO - handle errors better

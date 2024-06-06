@@ -24,15 +24,15 @@ impl Histogram {
     }
 
     pub fn new_it<T: Into<i64> + Copy, It: Iterator<Item = (String, T)>>(buckets: &mut It) -> Histogram {
-        return Histogram { buckets: buckets.map( |(title, x)| (title, x.into())).collect(), ..Default::default() }
+        Histogram { buckets: buckets.map( |(title, x)| (title, x.into())).collect(), ..Default::default() }
     }
 
     pub fn new_indexed_it<T: Into<i64> + Copy, It: Iterator<Item = T>>(buckets: &mut It) -> Histogram {
-        return Histogram { buckets: buckets.enumerate().map( |(ix, x)| (ix.to_string(), x.into())).collect(), ..Default::default() }
+        Histogram { buckets: buckets.enumerate().map( |(ix, x)| (ix.to_string(), x.into())).collect(), ..Default::default() }
     }
 
     pub fn new_indexed<T: Into<i64> + Copy>(buckets: &Vec<T>) -> Histogram {
-        return Self::new_indexed_it(&mut buckets.iter().map(|x| *x));
+        return Self::new_indexed_it(&mut buckets.iter().copied());
     }
 
     pub fn set_geometry(&mut self, width: usize, height: usize) -> &mut Self {
@@ -92,8 +92,8 @@ impl Buckets {
     }
 
     pub fn analyse(&mut self, v: &Vec<Decimal>) -> &mut Self {
-        self.min = v.iter().min().map(|x| x.clone());
-        self.max = v.iter().max().map(|x| x.clone());
+        self.min = v.iter().min().copied();
+        self.max = v.iter().max().copied();
         if let (Some(delta), Some(min), Some(max)) = (self.delta, self.min, self.max) {
             let min = (min / delta).floor() * delta;
             let max = (max / delta).ceil() * delta;

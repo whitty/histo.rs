@@ -151,7 +151,7 @@ fn parse_decimal(s: &str) -> Result<Decimal, String> {
 // hmm,... the no data error doesn't print properly - so print it manually
 fn no_data_err() -> Result<(), histo_log::error::Error> {
     let err = histo_log::Error::no_data();
-    println!("{}", err.to_string());
+    println!("{}", err);
     Err(err)
 }
 
@@ -190,7 +190,7 @@ fn handle_time_buckets(data: Vec<Decimal>, args: &Options) -> Result<(), histo_l
         .set_delta_opt(time_delta)
         .analyse(&data)
         .generate(&data);
-    print_time_histo(data, &args)
+    print_time_histo(data, args)
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -211,8 +211,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Scoped(a) => {
             let data = histo_log::data::scoped_time_load(args.input.clone(), &a.time_selector.time_select,
-                                                     &a.selections.scope_in.as_ref().expect("Must exist --scope-match not yet implemented"),
-                                                     &a.selections.scope_out.as_ref().expect("Must exist --scope-match not yet implemented"));
+                                                     a.selections.scope_in.as_ref().expect("Must exist --scope-match not yet implemented"),
+                                                     a.selections.scope_out.as_ref().expect("Must exist --scope-match not yet implemented"));
             handle_time_buckets(data, &args)?;
         }
     }
