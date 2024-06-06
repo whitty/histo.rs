@@ -48,7 +48,7 @@ for (ver in build_os_vers) {
           if (has_analyzer[rev]) {
             stage("${version}-clippy${rev}") {
               warnError("clippy") {
-                sh "cargo clippy --message-format json > target/report${rev}-${version}.log"
+                sh "cargo clippy --message-format json -- --deny warnings > target/report${rev}-${version}.log"
                 recordIssues(aggregatingResults: true, publishAllIssues: true,
                              tools: [cargo(id: "cargo-clippy${rev}-${version}",
                                            name: "Clippy ${version}${rev}",
