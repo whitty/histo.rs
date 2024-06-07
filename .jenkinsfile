@@ -24,10 +24,6 @@ for (ver in build_os_vers) {
         for (rev in ['', '-norestrict']) {
 
           stage("${version}-build${rev}") {
-            if (rev == '') {
-              // TODO - in 24.04 or later rust the 1.63 toolchain doesn't install
-              sh "rustup toolchain add 1.63.0 --profile minimal"
-            }
             sh "cargo build"
           }
 
