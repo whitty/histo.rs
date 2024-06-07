@@ -196,24 +196,32 @@ fn handle_time_buckets(data: Vec<Decimal>, args: &Options) -> Result<(), histo_l
     print_time_histo(data, args)
 }
 
+// parse options, and split off the input which we will consume just once
+// to avoid having to clone
+fn parse_options() -> (Options, Vec<String>) {
+    let mut args = Options::parse();
+    let input = args.input.split_off(0);
+    (args, input)
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args = Options::parse();
+    let (args, input) = parse_options();
 
     match &args.command {
         Commands::Simple(a) => {
-            let data = histo_log::data::simple_load_w_filter(args.input.clone(), &a.optional_match.match_);
+            let data = histo_log::data::simple_load_w_filter(input, &a.optional_match.match_);
             print_histo(data, &args)?;
         },
         Commands::Select(a) => {
-            let data = histo_log::data::select_load(args.input.clone(), &a.selector);
+            let data = histo_log::data::select_load(input, &a.selector);
             print_histo(data, &args)?;
         },
         Commands::TimeDiff(a) => {
-            let data = histo_log::data::time_diff_load(args.input.clone(), &a.time_selector.time_select, &a.optional_match.match_);
+            let data = histo_log::data::time_diff_load(input, &a.time_selector.time_select, &a.optional_match.match_);
             handle_time_buckets(data, &args)?;
         }
         Commands::Scoped(a) => {
-            let data = histo_log::data::scoped_time_load(args.input.clone(), &a.time_selector.time_select,
+            let data = histo_log::data::scoped_time_load(input, &a.time_selector.time_select,
                                                      a.selections.scope_in.as_ref().expect("Must exist --scope-match not yet implemented"),
                                                      a.selections.scope_out.as_ref().expect("Must exist --scope-match not yet implemented"));
             handle_time_buckets(data, &args)?;
