@@ -18,7 +18,7 @@ for (ver in build_os_vers) {
 
         stage("${version}-preparation") {
           src = checkout(scm)
-          sh "sudo apt install -y bats"
+          sh "sudo apt update && sudo apt install --no-install-recommends -y bats mingw-w64 wine64 wine"
         }
 
         for (rev in ['', '-norestrict']) {
@@ -70,6 +70,14 @@ for (ver in build_os_vers) {
           if (rev == "") {
             stage("${version}-bats") {
               sh "bats tests/"
+            }
+
+            stage("${version}-build-windows${rev}") {
+              sh "cargo build --target x86_64-pc-windows-gnu"
+            }
+
+            stage("${version}-test-windows${rev}") {
+              sh "env CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUNNER=wine cargo test --target x86_64-pc-windows-gnu"
             }
           }
 
