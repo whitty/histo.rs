@@ -2,8 +2,16 @@
 name = "histo-log"
 version = "0.1.1"
 edition = "2021"
+authors = ["Greg Whiteley <greg.whiteley@gmail.com>"]
+license = "GPL-3.0-or-later"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+repository = "https://github.com/whitty/histo-log"
+readme = "README.md"
+
+description = "CLI tools for generating histograms from log files"
+categories = ["command-line-utilities"]
+
+exclude = [".jenkinsfile"]
 
 [dependencies]
 asciigraph = "^0.6.0"

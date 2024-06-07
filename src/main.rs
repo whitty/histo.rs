@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// (C) Copyright 2023-2024 Greg Whiteley
+
 use clap::{Parser, ArgAction::Append};
 use regex::Regex;
 use rust_decimal::Decimal;
