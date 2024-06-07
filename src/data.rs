@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // (C) Copyright 2023-2024 Greg Whiteley
 
-use std::io::{Error, BufRead, ErrorKind::NotFound};
+use std::io::BufRead;
 use std::collections::VecDeque;
 use regex::Regex;
 use rust_decimal::prelude::*;
@@ -73,17 +73,12 @@ impl Iterator for LineVisitor {
             }
 
             // If there's some data try and consume it
-            if self.curr.is_some() {
-                // get next line
-                let next = self.curr.as_mut().and_then(|reader| {
-                    reader.next()
-                }).unwrap_or(Err(Error::from(NotFound)));
-
-                if let Ok(n) = next {
-                    return Some(n)
+            if let Some(curr) = &mut self.curr {
+                if let Some(Ok(next)) = curr.next() {
+                    return Some(next)
                 }
-                self.curr = None;
-            }
+                self.curr = None
+            };
         }
     }
 }
