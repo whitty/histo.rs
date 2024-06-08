@@ -47,6 +47,7 @@ impl Histogram {
         self
     }
 
+    #[cfg(feature = "asciigraph")]
     pub fn draw(&self) -> String {
         let mut graph = if self.geom.is_some() {
             let g = self.geom.unwrap();
@@ -59,6 +60,11 @@ impl Histogram {
             .set_skip_values(asciigraph::SkipValue::None)
             .set_y_min(0)
             .draw()
+    }
+
+    #[cfg(not(feature = "asciigraph"))]
+    pub fn draw(&self) -> String {
+        format!("{:?}", self.buckets)
     }
 }
 
@@ -153,7 +159,22 @@ mod tests {
     use super::*;
 
     #[test]
+    #[cfg(not(feature = "asciigraph"))]
     fn test_draw() {
+        // TODO - not a test
+        let s = Histogram::new_indexed(&vec![100, 200, 300, 400, 200, 100]).draw();
+        println!("{}", s);
+        assert_eq!(s, "\n");
+
+        let h = Histogram::new(&vec![(100, "1-5"), (200, "6-10"), (300, "11-15"), (400, "16-20"), (200, "21-25"), (100, "25-30"), (0, "31-35")]);
+        let s = h.draw();
+        println!("{}", s);
+        assert_eq!(s, "\n");
+    }
+
+    #[test]
+    #[cfg(feature = "asciigraph")]
+    fn test_ag_draw() {
         // TODO - not a test
         let s = Histogram::new_indexed(&vec![100, 200, 300, 400, 200, 100]).draw();
         println!("{}", s);
