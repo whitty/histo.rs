@@ -4,7 +4,10 @@
 #[derive(Debug)]
 pub enum Error {
     NoData,
+    DataTagsTooLongToFitTerminal,
     VarError(std::env::VarError),
+    IOError(std::io::Error),
+    FormatError(std::fmt::Error),
     ParseIntError(std::num::ParseIntError),
 }
 
@@ -19,10 +22,16 @@ impl std::fmt::Display for Error {
         match &self {
             Error::NoData =>
                 write!(f, "No data found, check your inputs and selectors"),
+            Error::DataTagsTooLongToFitTerminal =>
+                write!(f, "Unable to fit graph in terminal width"),
             Error::ParseIntError(e) =>
                 write!(f, "Failed to parse {}", e),
             Error::VarError(e) =>
                 write!(f, "Environment variable error {}", e),
+            Error::IOError(e) =>
+                write!(f, "I/O error {}", e),
+            Error::FormatError(e) =>
+                write!(f, "Format error {}", e),
         }
     }
 }
@@ -30,9 +39,11 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
-            Error::NoData => None,
+            Error::NoData | Error::DataTagsTooLongToFitTerminal => None,
             Error::ParseIntError(ref e) => Some(e),
             Error::VarError(ref e) => Some(e),
+            Error::IOError(ref e) => Some(e),
+            Error::FormatError(ref e) => Some(e),
         }
     }
 }
@@ -46,5 +57,17 @@ impl From<std::num::ParseIntError> for Error {
 impl From<std::env::VarError> for Error {
     fn from(err: std::env::VarError) -> Error {
         Error::VarError(err)
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(err: std::io::Error) -> Error {
+        Error::IOError(err)
+    }
+}
+
+impl From<std::fmt::Error> for Error {
+    fn from(err: std::fmt::Error) -> Error {
+        Error::FormatError(err)
     }
 }
