@@ -4,6 +4,8 @@
 use rust_decimal::prelude::*;
 
 use super::Result;
+#[cfg(not(feature = "asciigraph"))]
+use super::Error;
 
 #[derive(Default)]
 pub struct Histogram {
@@ -48,7 +50,7 @@ impl Histogram {
     }
 
     #[cfg(feature = "asciigraph")]
-    pub fn draw(&self) -> String {
+    pub fn draw(&self) -> Result<String> {
         let mut graph = if self.geom.is_some() {
             let g = self.geom.unwrap();
             asciigraph::Graph::new(g.0, g.1)
@@ -56,15 +58,64 @@ impl Histogram {
             asciigraph::Graph::default()
         };
 
-        graph.set_1d_labeled_data(self.buckets.clone())
+        Ok(graph.set_1d_labeled_data(self.buckets.clone())
             .set_skip_values(asciigraph::SkipValue::None)
             .set_y_min(0)
-            .draw()
+            .draw())
+    }
+
+    #[cfg(any(not(feature = "asciigraph"), test))]
+    fn scale(v: i64, min: i64, max: i64, width: usize) -> usize {
+        // Clamp v to max
+        let v = v.min(max);
+        // Take v as relative to min (and clamp to min)
+        let v = v.abs_sub(&min) as u64;
+
+        let delta = max.abs_diff(min);
+        // scale v by delta:width
+        v.checked_mul(width as u64)
+            .and_then(|x| x.checked_div(delta))
+            .and_then(|x| usize::try_from(x).ok())
+            .unwrap_or(width)
     }
 
     #[cfg(not(feature = "asciigraph"))]
-    pub fn draw(&self) -> String {
-        format!("{:?}", self.buckets)
+    pub fn draw(&self) -> Result<String> {
+        use std::fmt::Write;
+
+        let mut buf = String::new();
+
+        let mut max_name_len = 8; // min
+        let mut min_val = i64::MAX;
+        let mut max_val = i64::MIN;
+        for (name, v) in &self.buckets {
+            max_name_len = max_name_len.max(name.len());
+            min_val = min_val.min(*v);
+            max_val = max_val.max(*v);
+        }
+
+        let zero_base = true; // TODO - derive this
+
+        if zero_base && min_val > 0 {
+            min_val = 0;
+        }
+
+        let name_field_len = max_name_len + 1;
+        let columns = self.geom
+            .map(|x| x.0)
+            .unwrap_or(72)
+            .saturating_sub(name_field_len + 1);
+
+        if columns == 0 {
+            return Err(Error::DataTagsTooLongToFitTerminal);
+        }
+
+        for (name, v) in &self.buckets {
+            let count = Self::scale(*v, min_val, max_val, columns);
+            writeln!(buf, "{:>name_field_len$} {:#>count$}", name, "#")?;
+        }
+
+        Ok(buf)
     }
 }
 
@@ -162,26 +213,40 @@ mod tests {
     #[cfg(not(feature = "asciigraph"))]
     fn test_draw() {
         // TODO - not a test
-        let s = Histogram::new_indexed(&vec![100, 200, 300, 400, 200, 100]).draw();
+        let s = Histogram::new_indexed(&vec![100, 200, 300, 400, 200, 100]).draw().unwrap();
         println!("{}", s);
-        assert_eq!(s, "\n");
+        assert_eq!(s, r#"        0 ###############
+        1 ###############################
+        2 ##############################################
+        3 ##############################################################
+        4 ###############################
+        5 ###############
+"#);
 
         let h = Histogram::new(&vec![(100, "1-5"), (200, "6-10"), (300, "11-15"), (400, "16-20"), (200, "21-25"), (100, "25-30"), (0, "31-35")]);
-        let s = h.draw();
+        let s = h.draw().unwrap();
         println!("{}", s);
-        assert_eq!(s, "\n");
+        assert_eq!(s, r#"      1-5 ###############
+     6-10 ###############################
+    11-15 ##############################################
+    16-20 ##############################################################
+    21-25 ###############################
+    25-30 ###############
+    31-35 #
+"#
+ );
     }
 
     #[test]
     #[cfg(feature = "asciigraph")]
     fn test_ag_draw() {
         // TODO - not a test
-        let s = Histogram::new_indexed(&vec![100, 200, 300, 400, 200, 100]).draw();
+        let s = Histogram::new_indexed(&vec![100, 200, 300, 400, 200, 100]).draw().unwrap();
         println!("{}", s);
         assert_eq!(s, "438 |                                                \n    |                                                \n    |                        ████████                \n384 |                        ████████                \n    |                        ████████                \n    |                        ████████                \n330 |                        ████████                \n    |                ▄▄▄▄▄▄▄▄████████                \n    |                ████████████████                \n276 |                ████████████████                \n    |                ████████████████                \n    |                ████████████████                \n222 |                ████████████████                \n    |        ████████████████████████████████        \n    |        ████████████████████████████████        \n168 |        ████████████████████████████████        \n    |        ████████████████████████████████        \n    |        ████████████████████████████████        \n114 |▄▄▄▄▄▄▄▄████████████████████████████████▄▄▄▄▄▄▄▄\n    |████████████████████████████████████████████████\n    |████████████████████████████████████████████████\n 60 |████████████████████████████████████████████████\n    |████████████████████████████████████████████████\n    |████████████████████████████████████████████████\n    └------------------------------------------------\n     0       1       2       3       4       5       \n");
 
         let h = Histogram::new(&vec![(100, "1-5"), (200, "6-10"), (300, "11-15"), (400, "16-20"), (200, "21-25"), (100, "25-30"), (0, "31-35")]);
-        let s = h.draw();
+        let s = h.draw().unwrap();
         println!("{}", s);
         assert_eq!(s, "451 |                                                \n    |                                                \n    |                     ▄▄▄▄▄▄▄                    \n394 |                     ███████                    \n    |                     ███████                    \n    |                     ███████                    \n337 |                     ███████                    \n    |              ▄▄▄▄▄▄▄███████                    \n    |              ██████████████                    \n280 |              ██████████████                    \n    |              ██████████████                    \n    |              ██████████████                    \n223 |              ██████████████                    \n    |       ████████████████████████████             \n    |       ████████████████████████████             \n166 |       ████████████████████████████             \n    |       ████████████████████████████             \n    |       ████████████████████████████             \n109 |██████████████████████████████████████████      \n    |██████████████████████████████████████████      \n    |██████████████████████████████████████████      \n 52 |██████████████████████████████████████████      \n    |██████████████████████████████████████████      \n    |██████████████████████████████████████████▄▄▄▄▄▄\n    └------------------------------------------------\n     1-5     6-10    11-15   16-20   21-25   25-30   \n");
     }
@@ -236,5 +301,61 @@ mod tests {
             .analyse(&data)
             .linear_buckets();
         assert_eq!(buckets, inc_range_s("1.0", "1.0", 4));
+    }
+
+    #[test]
+    fn test_scale() {
+        // test in a simple range
+        let scale = |val: i64| {
+            Histogram::scale(val, 0, 50, 80)
+        };
+        assert_eq!(scale(0), 0);
+        assert_eq!(scale(5), 8);
+        assert_eq!(scale(25), 40);
+        assert_eq!(scale(45), 72);
+        assert_eq!(scale(50), 80);
+        assert_eq!(scale(-10), 0);
+        assert_eq!(scale(55), 80);
+
+        // Repeat test with min/max/value offset - ie so that we move
+        // relative to max-min range
+        let scale = |val: i64| {
+            let diff: i64 = 10;
+            Histogram::scale(val - diff, 0 - diff, 50 - diff, 80)
+        };
+        assert_eq!(scale(0), 0);
+        assert_eq!(scale(5), 8);
+        assert_eq!(scale(25), 40);
+        assert_eq!(scale(45), 72);
+        assert_eq!(scale(50), 80);
+        assert_eq!(scale(-10), 0);
+        assert_eq!(scale(55), 80);
+
+        // test large values in a smaller range range
+        let scale = |val: i64| {
+            Histogram::scale(val, 0, 1000, 80)
+        };
+        assert_eq!(scale(-1), 0);
+        assert_eq!(scale(0), 0);
+        assert_eq!(scale(100), 8);
+        assert_eq!(scale(333), 26);
+        assert_eq!(scale(500), 40);
+        assert_eq!(scale(900), 72);
+        assert_eq!(scale(1000), 80);
+        assert_eq!(scale(1010), 80);
+
+        // Repeat test with min/max/value offset - ie so that we move
+        // relative to max-min range
+        let scale = |val: i64| {
+            Histogram::scale(val - 500, 0 - 500, 1000 - 500, 80)
+        };
+        assert_eq!(scale(-1), 0);
+        assert_eq!(scale(0), 0);
+        assert_eq!(scale(100), 8);
+        assert_eq!(scale(333), 26);
+        assert_eq!(scale(500), 40);
+        assert_eq!(scale(900), 72);
+        assert_eq!(scale(1000), 80);
+        assert_eq!(scale(1010), 80);
     }
 }

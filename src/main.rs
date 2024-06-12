@@ -163,7 +163,7 @@ fn print_histo(data: std::collections::BTreeMap<String, i64>, args: &Options) ->
         no_data_err()?;
     }
     let g = histo_log::graph::Histogram::new_it(&mut data.into_iter())
-        .set_auto_geometry(args.height).draw();
+        .set_auto_geometry(args.height).draw()?;
     println!("{}", g);
     Ok(())
 }
@@ -173,7 +173,7 @@ fn print_time_histo(data: std::collections::BTreeMap<Decimal, i64>, args: &Optio
         no_data_err()?;
     }
     let g = histo_log::graph::Histogram::new_it(&mut data.into_iter().map(|(v,c)| (v.to_string(), c) ))
-        .set_auto_geometry(args.height).draw();
+        .set_auto_geometry(args.height).draw()?;
     println!("{}", g);
     Ok(())
 }
