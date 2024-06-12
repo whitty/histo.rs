@@ -81,6 +81,16 @@ for (ver in build_os_vers) {
             }
           }
 
+          stage("${version}-build-ag${rev}") {
+              sh "cargo build --features asciigraph"
+          }
+
+          stage("${version}-test-ag${rev}") {
+            warnError("test") {
+              sh "cargo test --features asciigraph"
+            }
+          }
+
           sh "rm -f rust-toolchain.toml Cargo.lock"
 
         } // rev
