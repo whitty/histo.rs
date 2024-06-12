@@ -205,6 +205,11 @@ fn parse_options() -> (Options, Vec<String>) {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    run().map_err(|e| { println!("{}\n", e); e} )?;
+    Ok(())
+}
+
+fn run() -> Result<(), histo_log::Error> {
     let (args, input) = parse_options();
 
     match &args.command {

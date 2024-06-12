@@ -81,7 +81,7 @@ impl Histogram {
 
     #[cfg(not(feature = "asciigraph"))]
     pub fn draw(&self) -> Result<String> {
-        use std::fmt::Write;
+        use std::{fmt::Write, ops::Div};
 
         let mut buf = String::new();
 
@@ -100,10 +100,15 @@ impl Histogram {
             min_val = 0;
         }
 
-        let name_field_len = max_name_len + 1;
         let columns = self.geom
             .map(|x| x.0)
-            .unwrap_or(72)
+            .unwrap_or(72);
+
+        // no more than half the size
+        let max_name_len = max_name_len.min(columns.div(2));
+        let name_field_len = max_name_len + 1;
+
+        let columns = columns
             .saturating_sub(name_field_len + 1);
 
         if columns == 0 {
@@ -112,7 +117,7 @@ impl Histogram {
 
         for (name, v) in &self.buckets {
             let count = Self::scale(*v, min_val, max_val, columns);
-            writeln!(buf, "{:>name_field_len$} {:#>count$}", name, "#")?;
+            writeln!(buf, "{:>max_name_len$} {:#>count$}", &name[0..max_name_len.min(name.len())], "#")?;
         }
 
         Ok(buf)
@@ -215,24 +220,24 @@ mod tests {
         // TODO - not a test
         let s = Histogram::new_indexed(&vec![100, 200, 300, 400, 200, 100]).draw().unwrap();
         println!("{}", s);
-        assert_eq!(s, r#"        0 ###############
-        1 ###############################
-        2 ##############################################
-        3 ##############################################################
-        4 ###############################
-        5 ###############
+        assert_eq!(s, r#"       0 ###############
+       1 ###############################
+       2 ##############################################
+       3 ##############################################################
+       4 ###############################
+       5 ###############
 "#);
 
         let h = Histogram::new(&vec![(100, "1-5"), (200, "6-10"), (300, "11-15"), (400, "16-20"), (200, "21-25"), (100, "25-30"), (0, "31-35")]);
         let s = h.draw().unwrap();
         println!("{}", s);
-        assert_eq!(s, r#"      1-5 ###############
-     6-10 ###############################
-    11-15 ##############################################
-    16-20 ##############################################################
-    21-25 ###############################
-    25-30 ###############
-    31-35 #
+        assert_eq!(s, r#"     1-5 ###############
+    6-10 ###############################
+   11-15 ##############################################
+   16-20 ##############################################################
+   21-25 ###############################
+   25-30 ###############
+   31-35 #
 "#
  );
     }
