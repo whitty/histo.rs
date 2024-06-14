@@ -2,6 +2,7 @@
 // (C) Copyright 2023-2024 Greg Whiteley
 
 use clap::{Parser, ArgAction::Append};
+use histo_log::Error;
 use regex::Regex;
 use rust_decimal::Decimal;
 
@@ -151,16 +152,9 @@ fn parse_decimal(s: &str) -> Result<Decimal, String> {
     Err(format!("Failed to parse {} as decimal", s))
 }
 
-// hmm,... the no data error doesn't print properly - so print it manually
-fn no_data_err() -> Result<(), histo_log::error::Error> {
-    let err = histo_log::Error::no_data();
-    println!("{}", err);
-    Err(err)
-}
-
-fn print_histo(data: std::collections::BTreeMap<String, i64>, args: &Options) -> Result<(), histo_log::error::Error> {
+fn print_histo(data: std::collections::BTreeMap<String, i64>, args: &Options) -> Result<(), Error> {
     if data.is_empty() {
-        no_data_err()?;
+        return Err(Error::no_data());
     }
     let g = histo_log::graph::Histogram::new_it(&mut data.into_iter())
         .set_auto_geometry(args.height).draw()?;
@@ -168,9 +162,9 @@ fn print_histo(data: std::collections::BTreeMap<String, i64>, args: &Options) ->
     Ok(())
 }
 
-fn print_time_histo(data: std::collections::BTreeMap<Decimal, i64>, args: &Options) -> Result<(), histo_log::error::Error> {
+fn print_time_histo(data: std::collections::BTreeMap<Decimal, i64>, args: &Options) -> Result<(), Error> {
     if data.is_empty() {
-        no_data_err()?;
+        return Err(Error::no_data());
     }
     let g = histo_log::graph::Histogram::new_it(&mut data.into_iter().map(|(v,c)| (v.to_string(), c) ))
         .set_auto_geometry(args.height).draw()?;
@@ -178,9 +172,9 @@ fn print_time_histo(data: std::collections::BTreeMap<Decimal, i64>, args: &Optio
     Ok(())
 }
 
-fn handle_time_buckets(data: Vec<Decimal>, args: &Options) -> Result<(), histo_log::error::Error> {
+fn handle_time_buckets(data: Vec<Decimal>, args: &Options) -> Result<(), Error> {
     if data.is_empty() {
-        no_data_err()?;
+        return Err(Error::no_data());
     }
 
     let time_delta = match &args.command {
@@ -204,12 +198,13 @@ fn parse_options() -> (Options, Vec<String>) {
     (args, input)
 }
 
+// hmm,... the errors returned through main don't print via display - so print it manually
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     run().map_err(|e| { println!("{}\n", e); e} )?;
     Ok(())
 }
 
-fn run() -> Result<(), histo_log::Error> {
+fn run() -> Result<(), Error> {
     let (args, input) = parse_options();
 
     match &args.command {
