@@ -16,6 +16,8 @@ pub struct Histogram {
 
 impl Histogram {
 
+    const COLUMNS_DEFAULT: usize = 72;
+
     pub fn new<T: Into<i64> + Copy>(buckets: &[(T, &str)]) -> Histogram {
         return Self::new_it(&mut buckets.iter().map(|(x, title)| (title.to_string(), *x)));
     }
@@ -52,7 +54,7 @@ impl Histogram {
     }
 
     pub fn set_auto_geometry(&mut self, height: usize) -> &mut Self {
-        let width = Histogram::from_int_env("COLUMNS").unwrap_or(72);
+        let width = Histogram::from_int_env("COLUMNS").unwrap_or(Self::COLUMNS_DEFAULT);
         self.geom = Some((width, height));
         self
     }
@@ -110,7 +112,7 @@ impl Histogram {
 
         let columns = self.geom
             .map(|x| x.0)
-            .unwrap_or(72);
+            .unwrap_or(Self::COLUMNS_DEFAULT);
 
         // no more than half the size
         let max_name_len = max_name_len.min(columns.div(2));
