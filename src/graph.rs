@@ -12,6 +12,8 @@ pub struct Histogram {
     buckets: Vec<(String, i64)>,
 
     geom: Option<(usize, usize)>,
+
+    show_counts: bool,
 }
 
 impl Histogram {
@@ -59,6 +61,19 @@ impl Histogram {
         self
     }
 
+    pub fn show_counts(&mut self) -> &mut Self {
+        self.set_show_counts(true)
+    }
+
+    pub fn set_show_counts(&mut self, val: bool) -> &mut Self {
+        self.show_counts = val;
+        self
+    }
+
+    pub fn hide_counts(&mut self) -> &mut Self {
+        self.set_show_counts(false)
+    }
+
     #[cfg(feature = "asciigraph")]
     pub fn draw(&self) -> Result<String> {
         let mut graph = if self.geom.is_some() {
@@ -96,6 +111,24 @@ impl Histogram {
     }
 
     #[cfg(not(feature = "asciigraph"))]
+    fn count_size(&self) -> usize {
+        if self.show_counts {
+            if let Some(first) = self.buckets.first() {
+
+                let mut min = first.1;
+                let mut max = first.1;
+                for x in &self.buckets {
+                    max = x.1.max(max);
+                    min = x.1.min(min);
+                }
+
+                return format!("{}", max).len().max(format!("{}", min).len());
+            }
+        }
+        0
+    }
+
+    #[cfg(not(feature = "asciigraph"))]
     pub fn draw(&self) -> Result<String> {
         use std::{fmt::Write, ops::Div};
 
@@ -124,8 +157,13 @@ impl Histogram {
         let max_name_len = max_name_len.min(columns.div(2));
         let name_field_len = max_name_len + 1;
 
+        let count_field_len = self.count_size();
+        let count_field_allowance = if count_field_len > 0 {
+            count_field_len + 2 // colon, space
+        } else { count_field_len };
+
         let columns = columns
-            .saturating_sub(name_field_len + 1);
+            .saturating_sub(name_field_len + 1 + count_field_allowance);
 
         if columns == 0 {
             return Err(Error::DataTagsTooLongToFitTerminal);
@@ -138,6 +176,10 @@ impl Histogram {
             let count = Self::scale(*v, min_val, max_val, columns);
 
             write!(buf, "{:>max_name_len$}", &name[0..max_name_len.min(name.len())])?;
+
+            if self.show_counts {
+                write!(buf, ": {:>count_field_len$}", v)?;
+            }
 
             // if value is literally zero against a zero base don't print anything (round to nothing)
             // otherwise it will always round to _at least one_
@@ -281,6 +323,29 @@ mod tests {
    21-25 ###############################
    25-30 ###############
    31-35 #
+"#
+ );
+
+        // ensure non-zero doesn't get crushed to zero
+        let s = Histogram::new(&vec![
+            (100, "1-5"),
+            (200, "6-10"),
+            (300, "11-15"),
+            (400, "16-20"),
+            (200, "21-25"),
+            (100, "25-30"),
+            (1, "31-35")
+        ]).show_counts()
+            .draw()
+            .unwrap();
+        println!("{}", s);
+        assert_eq!(s, r#"     1-5: 100 ##############
+    6-10: 200 ############################
+   11-15: 300 ###########################################
+   16-20: 400 #########################################################
+   21-25: 200 ############################
+   25-30: 100 ##############
+   31-35:   1 #
 "#
  );
     }
