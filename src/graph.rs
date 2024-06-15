@@ -20,11 +20,19 @@ impl Histogram {
         return Self::new_it(&mut buckets.iter().map(|(x, title)| (title.to_string(), *x)));
     }
 
-    pub fn new_it<T: Into<i64> + Copy, It: Iterator<Item = (String, T)>>(buckets: &mut It) -> Histogram {
+    pub fn new_it<T, It>(buckets: &mut It) -> Histogram
+    where
+        T: Into<i64> + Copy,
+        It: Iterator<Item = (String, T)>
+    {
         Histogram { buckets: buckets.map( |(title, x)| (title, x.into())).collect(), ..Default::default() }
     }
 
-    pub fn new_indexed_it<T: Into<i64> + Copy, It: Iterator<Item = T>>(buckets: &mut It) -> Histogram {
+    pub fn new_indexed_it<T, It>(buckets: &mut It) -> Histogram
+    where
+        T: Into<i64> + Copy,
+        It: Iterator<Item = T>
+    {
         Histogram { buckets: buckets.enumerate().map( |(ix, x)| (ix.to_string(), x.into())).collect(), ..Default::default() }
     }
 
