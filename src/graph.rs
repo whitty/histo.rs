@@ -123,9 +123,22 @@ impl Histogram {
             return Err(Error::DataTagsTooLongToFitTerminal);
         }
 
+        // generate template of max required number of #'s
+        let template = "#".repeat(columns);
+
         for (name, v) in &self.buckets {
             let count = Self::scale(*v, min_val, max_val, columns);
-            writeln!(buf, "{:>max_name_len$} {:#>count$}", &name[0..max_name_len.min(name.len())], "#")?;
+
+            write!(buf, "{:>max_name_len$}", &name[0..max_name_len.min(name.len())])?;
+
+            // if value is literally zero against a zero base don't print anything (round to nothing)
+            // otherwise it will always round to _at least one_
+            if *v == 0 && zero_base {
+                writeln!(buf)?;
+            } else {
+                let count = count.max(1); // always print at least one if we aren't zero
+                writeln!(buf, " {}", &template[0..count])?;
+            }
         }
 
         Ok(buf)
@@ -237,6 +250,20 @@ mod tests {
 "#);
 
         let h = Histogram::new(&vec![(100, "1-5"), (200, "6-10"), (300, "11-15"), (400, "16-20"), (200, "21-25"), (100, "25-30"), (0, "31-35")]);
+        let s = h.draw().unwrap();
+        println!("{}", s);
+        assert_eq!(s, r#"     1-5 ###############
+    6-10 ###############################
+   11-15 ##############################################
+   16-20 ##############################################################
+   21-25 ###############################
+   25-30 ###############
+   31-35
+"#
+ );
+
+        // ensure non-zero doesn't get crushed to zero
+        let h = Histogram::new(&vec![(100, "1-5"), (200, "6-10"), (300, "11-15"), (400, "16-20"), (200, "21-25"), (100, "25-30"), (1, "31-35")]);
         let s = h.draw().unwrap();
         println!("{}", s);
         assert_eq!(s, r#"     1-5 ###############
