@@ -82,8 +82,14 @@ impl Histogram {
         let v = v.abs_sub(&min) as u64;
 
         let delta = max.abs_diff(min);
+        // to simulate round-to-nearest we add half the variance
+        let round_offset = delta
+            .checked_div(width as u64)
+            .and_then(|x| x.checked_div(2))
+            .unwrap_or(0);
+
         // scale v by delta:width
-        v.checked_mul(width as u64)
+        (v + round_offset).checked_mul(width as u64)
             .and_then(|x| x.checked_div(delta))
             .and_then(|x| usize::try_from(x).ok())
             .unwrap_or(width)
@@ -380,7 +386,7 @@ mod tests {
         assert_eq!(scale(-1), 0);
         assert_eq!(scale(0), 0);
         assert_eq!(scale(100), 8);
-        assert_eq!(scale(333), 26);
+        assert_eq!(scale(333), 27);
         assert_eq!(scale(500), 40);
         assert_eq!(scale(900), 72);
         assert_eq!(scale(1000), 80);
@@ -394,10 +400,32 @@ mod tests {
         assert_eq!(scale(-1), 0);
         assert_eq!(scale(0), 0);
         assert_eq!(scale(100), 8);
-        assert_eq!(scale(333), 26);
+        assert_eq!(scale(333), 27);
         assert_eq!(scale(500), 40);
         assert_eq!(scale(900), 72);
         assert_eq!(scale(1000), 80);
         assert_eq!(scale(1010), 80);
+
+        // test values from our example histogram in the draw test
+        // Not really a test, just validating the values seem to look sane
+        let scale = |val: i64| {
+            Histogram::scale(val, 0, 400, 72 - 10) // header allowance is 10
+        };
+
+        assert_eq!(scale(-1), 0);
+        assert_eq!(scale(0), 0);
+        assert_eq!(scale(1), 0);
+        assert_eq!(scale(100 - 1), 15);
+        assert_eq!(scale(100 + 0), 15);
+        assert_eq!(scale(100 + 1), 16);
+        assert_eq!(scale(200 - 1), 31);
+        assert_eq!(scale(200 + 0), 31);
+        assert_eq!(scale(200 + 1), 31);
+        assert_eq!(scale(300 - 1), 46);
+        assert_eq!(scale(300 + 0), 46);
+        assert_eq!(scale(300 + 1), 47);
+        assert_eq!(scale(400 - 1), 62);
+        assert_eq!(scale(400 + 0), 62);
+        assert_eq!(scale(400 + 1), 62);
     }
 }
