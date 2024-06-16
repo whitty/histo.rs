@@ -20,6 +20,10 @@ struct Options {
     #[arg(long, default_value_t=40, global=true, hide=cfg!(not(feature="asciigraph")))]
     height: usize,
 
+    /// Include frequencies (counts)
+    #[arg(long, default_value_t=false, global=true, hide=cfg!(feature="asciigraph"))]
+    show_counts: bool,
+
     /// Input file(s), or if omitted use stdin.
     ///
     /// Use '-' for stdin
@@ -159,6 +163,7 @@ fn print_histo(data: std::collections::BTreeMap<String, i64>, args: &Options) ->
         return Err(Error::no_data());
     }
     let g = histo_log::graph::Histogram::new_it(&mut data.into_iter())
+        .set_show_counts(args.show_counts)
         .set_auto_geometry(args.height).draw()?;
     println!("{}", g);
     Ok(())
@@ -169,6 +174,7 @@ fn print_time_histo(data: std::collections::BTreeMap<Decimal, i64>, args: &Optio
         return Err(Error::no_data());
     }
     let g = histo_log::graph::Histogram::new_it(&mut data.into_iter().map(|(v,c)| (v.to_string(), c) ))
+        .set_show_counts(args.show_counts)
         .set_auto_geometry(args.height).draw()?;
     println!("{}", g);
     Ok(())
