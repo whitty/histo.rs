@@ -76,6 +76,16 @@ for (ver in build_os_vers) {
               sh "cargo build --target x86_64-pc-windows-gnu"
             }
 
+            stage("${version}-clippy-windows${rev}") {
+              warnError("clippy") {
+                sh "cargo clippy --target x86_64-pc-windows-gnu --message-format json -- --deny warnings > target/report-windows${rev}-${version}.log"
+                recordIssues(aggregatingResults: true, publishAllIssues: true,
+                             tools: [cargo(id: "cargo-clippy-windows${rev}-${version}",
+                                           name: "Clippy windows-${version}${rev}",
+                                           pattern: "**/target/report-windows${rev}-${version}.log")])
+              }
+            }
+
             stage("${version}-test-windows${rev}") {
               sh "env CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUNNER=wine cargo test --target x86_64-pc-windows-gnu"
             }
