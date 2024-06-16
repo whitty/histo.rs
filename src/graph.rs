@@ -149,12 +149,12 @@ impl Histogram {
             min_val = 0;
         }
 
-        let columns = self.geom
+        let term_columns = self.geom
             .map(|x| x.0)
             .unwrap_or(Self::COLUMNS_DEFAULT);
 
         // no more than half the size
-        let max_name_len = max_name_len.min(columns.div(2));
+        let max_name_len = max_name_len.min(term_columns.div(2));
         let name_field_len = max_name_len + 1;
 
         let count_field_len = self.count_size();
@@ -162,11 +162,11 @@ impl Histogram {
             count_field_len + 2 // colon, space
         } else { count_field_len };
 
-        let columns = columns
+        let columns = term_columns
             .saturating_sub(name_field_len + 1 + count_field_allowance);
 
         if columns == 0 {
-            return Err(Error::DataTagsTooLongToFitTerminal);
+            return Err(Error::DataTagsTooLongToFitTerminal(term_columns));
         }
 
         // generate template of max required number of #'s

@@ -4,7 +4,7 @@
 #[derive(Debug)]
 pub enum Error {
     NoData,
-    DataTagsTooLongToFitTerminal,
+    DataTagsTooLongToFitTerminal(usize),
     VarError(std::env::VarError),
     IOError(std::io::Error),
     FormatError(std::fmt::Error),
@@ -22,8 +22,8 @@ impl std::fmt::Display for Error {
         match &self {
             Error::NoData =>
                 write!(f, "No data found, check your inputs and selectors"),
-            Error::DataTagsTooLongToFitTerminal =>
-                write!(f, "Unable to fit graph in terminal width"),
+            Error::DataTagsTooLongToFitTerminal(u) =>
+                write!(f, "Unable to fit graph in terminal width: {}", u),
             Error::ParseIntError(e) =>
                 write!(f, "Failed to parse {}", e),
             Error::VarError(e) =>
@@ -39,7 +39,7 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
-            Error::NoData | Error::DataTagsTooLongToFitTerminal => None,
+            Error::NoData | Error::DataTagsTooLongToFitTerminal(_) => None,
             Error::ParseIntError(ref e) => Some(e),
             Error::VarError(ref e) => Some(e),
             Error::IOError(ref e) => Some(e),
