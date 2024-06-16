@@ -23,3 +23,8 @@ rust_decimal = "1.33.1"
 
 [features]
 asciigraph = ["dep:asciigraph"]
+terminal = ["dep:termion"]
+default = ["terminal"]
+
+[target.'cfg(not(windows))'.dependencies]
+termion = { version = "4.0.2", optional = true }

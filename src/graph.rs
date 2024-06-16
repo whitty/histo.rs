@@ -55,8 +55,28 @@ impl Histogram {
         Ok(v)
     }
 
+    // Its unclear if this really works - COLUMNS isn't exported by default
+    fn get_terminal_columns_from_env() -> usize {
+        Self::from_int_env("COLUMNS").unwrap_or(Self::COLUMNS_DEFAULT)
+    }
+
+    #[cfg(not(all(feature = "terminal",target_family = "unix")))]
+    fn get_terminal_columns() -> usize {
+        Self::get_terminal_columns_from_env()
+    }
+
+    #[cfg(all(feature = "terminal",target_family = "unix"))]
+    fn get_terminal_columns() -> usize {
+        if let Ok((width, _)) = termion::terminal_size() {
+            if width > 0 {
+                return width as usize;
+            }
+        }
+        Self::get_terminal_columns_from_env()
+    }
+
     pub fn set_auto_geometry(&mut self, height: usize) -> &mut Self {
-        let width = Histogram::from_int_env("COLUMNS").unwrap_or(Self::COLUMNS_DEFAULT);
+        let width = Self::get_terminal_columns();
         self.geom = Some((width, height));
         self
     }
