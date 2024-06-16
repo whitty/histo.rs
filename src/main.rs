@@ -15,7 +15,9 @@ struct Options {
     command: Commands,
 
     /// Graph height in lines
-    #[arg(long, default_value_t=40, global=true)]
+    // TODO - height not supported without asciigraph, but use the same machinery
+    // to try to pass auto ("columns")
+    #[arg(long, default_value_t=40, global=true, hide=cfg!(not(feature="asciigraph")))]
     height: usize,
 
     /// Input file(s), or if omitted use stdin.
