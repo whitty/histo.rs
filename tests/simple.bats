@@ -11,6 +11,9 @@ setup() {
   test -x "$histo"
 
   test_dir=tests
+
+  # Set a fixed COLUMNS value for tests
+  export COLUMNS=72
 }
 
 @test "no args fails" {
@@ -82,6 +85,17 @@ setup() {
 @test "scoped: recurse" {
   # TODO - check the output - I don't think its very good
   "$histo" scoped --scope-in="->recurse" --scope-out="<-recurse" "$test_dir"/example_scoped.txt
+}
+
+@test "scoped: recurse --count --time-delta" {
+  run "$histo" scoped --show-counts --time-delta=1000 --scope-in="->recurse" --scope-out="<-recurse" "$test_dir"/example_scoped.txt
+  [ "$status" -eq 0 ]
+  [ "$output" = "    1000: 2 ###########################################################
+    2000: 0
+    3000: 0
+    4000: 1 #############################
+    5000: 0
+    6000: 1 #############################" ]
 }
 
 @test "scoped: arg conflict" {
