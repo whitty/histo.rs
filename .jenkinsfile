@@ -4,6 +4,7 @@ def parallel_versions = [:]
 
 def has_analyzer = [
   '': true,
+  '-1.63': false,
   '-norestrict': true,
 ]
 
@@ -21,7 +22,7 @@ for (ver in build_os_vers) {
           sh "sudo apt update && sudo apt install --no-install-recommends -y bats mingw-w64 wine64 wine"
         }
 
-        for (rev in ['', '-norestrict']) {
+        for (rev in ['', '-1.63', '-norestrict']) {
 
           stage("${version}-build${rev}") {
             sh "cargo build"
@@ -101,7 +102,13 @@ for (ver in build_os_vers) {
             }
           }
 
-          sh "rm -f rust-toolchain.toml Cargo.lock"
+          if (rev == '') {
+            sh "sed -i '/^channel/ s/1\\.75/1.63/' rust-toolchain.toml"
+            // TODO - in 24.04 or later rust the 1.63 toolchain doesn't install
+            sh "rustup toolchain add 1.63 --profile minimal"
+          } else if (rev == '-1.63') {
+            sh "rm -f rust-toolchain.toml Cargo.lock"
+          }
 
         } // rev
 
