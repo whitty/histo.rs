@@ -116,3 +116,13 @@ setup() {
   [ "$status" -ne 0 ]
   echo "$output" | grep -q "No data found"
 }
+
+# TODO - add helpers for strace mode
+@test "scoped: strace" {
+  run "$histo" scoped --show-counts --time-delta=0.0002 --time-select="\d+:\d+:(\d+\.\d+)" --scope-in="openat\(.*\) = (\d)" --scope-out="close\((\d)\)" "$test_dir"/strace.txt
+  [ "$status" -eq 0 ]
+  [ "$output" = "  0.0002: 1 ###################
+  0.0004: 1 ###################
+  0.0006: 3 ###########################################################
+  0.0008: 1 ###################" ]
+}
