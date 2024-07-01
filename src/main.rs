@@ -42,6 +42,9 @@ enum Commands {
 
     /// Plot distribution of difference between scoped "in and out" matches.
     Scoped(Scoped),
+
+    /// Plot distribution of difference between scoped "in and out" matches, matching regex-match fields for in and out matches.  For example open() -> n can match close(n)
+    ScopedMatch(Scoped),
 }
 
 #[derive(clap::Args, Debug)]
@@ -188,7 +191,7 @@ fn handle_time_buckets(data: Vec<Decimal>, args: &Options) -> Result<(), Error> 
     let time_delta = match &args.command {
         Commands::Simple(_) | Commands::Select(_) => { None }
         Commands::TimeDiff(a) => { a.time_selector.time_delta }
-        Commands::Scoped(a) => { a.time_selector.time_delta }
+        Commands::Scoped(a) | Commands::ScopedMatch(a) => { a.time_selector.time_delta }
     };
 
     let data = histo_log::graph::Buckets::default()
@@ -229,9 +232,20 @@ fn run() -> Result<(), Error> {
             handle_time_buckets(data, &args)?;
         }
         Commands::Scoped(a) => {
+            let in_match = a.selections.scope_in.as_ref().or(a.selections.scope_match.as_ref());
+            let out_match = a.selections.scope_out.as_ref().or(a.selections.scope_match.as_ref());
             let data = histo_log::data::scoped_time_load(input, &a.time_selector.time_select,
-                                                     a.selections.scope_in.as_ref().expect("Must exist --scope-match not yet implemented"),
-                                                     a.selections.scope_out.as_ref().expect("Must exist --scope-match not yet implemented"));
+                                                         in_match.expect("Must have either --scope-match or --scope-in"),
+                                                         out_match.expect("Must have either --scope-match or --scope-out"));
+            handle_time_buckets(data, &args)?;
+        }
+        Commands::ScopedMatch(a) => {
+            let in_match = a.selections.scope_in.as_ref().or(a.selections.scope_match.as_ref());
+            let out_match = a.selections.scope_out.as_ref().or(a.selections.scope_match.as_ref());
+            let data = histo_log::data::scoped_match_time_load(
+                input, &a.time_selector.time_select,
+                in_match.expect("Must have either --scope-match or --scope-in"),
+                out_match.expect("Must have either --scope-match or --scope-out"))?;
             handle_time_buckets(data, &args)?;
         }
     }
