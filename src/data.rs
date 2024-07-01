@@ -2,9 +2,11 @@
 // (C) Copyright 2023-2024 Greg Whiteley
 
 use std::io::BufRead;
-use std::collections::VecDeque;
+use std::collections::{VecDeque, HashMap};
 use regex::Regex;
 use rust_decimal::prelude::*;
+
+use super::Result;
 
 type InputType = std::io::BufReader<Box<dyn std::io::Read>>;
 type LinesT = std::io::Lines<InputType>;
@@ -171,6 +173,55 @@ pub fn scoped_time_load(inp: Vec<String>, time_select: &Regex, scoped_in: &Regex
     scoped_time_parse(LineVisitor::new(inp), time_select, scoped_in, scoped_out)
 }
 
+pub fn scoped_match_time_load(inp: Vec<String>, time_select: &Regex, scoped_in: &Regex, scoped_out: &Regex) -> Result<Vec<Decimal>> {
+    Ok(scoped_match_time_parse(LineVisitor::new(inp), time_select, scoped_in, scoped_out))
+}
+
+fn scoped_match_time_parse<I>(inp: I, time_select: &Regex, scoped_in: &Regex, scoped_out: &Regex) -> Vec<Decimal>
+where
+    I: Iterator<Item = String>
+{
+    type Key = Vec<String>;
+    fn match_to_key(regex: &Regex, line: &str) -> Option<Key> {
+        regex.captures(line)
+            .map(|the_match| the_match
+                 .iter()
+                 .skip(1)
+                 .map(|y| y.unwrap().as_str().into())
+                 .collect())
+    }
+
+    let mut v: Vec<Decimal> = vec![];
+    let mut prev: HashMap<Key, Vec<Decimal>> = HashMap::new();
+
+    let symmetric: bool = std::ptr::eq(scoped_in, scoped_out) || (scoped_in.as_str() == scoped_out.as_str());
+
+    for x in inp {
+        if let Some(now) = time_from(x.as_str(), time_select) {
+            if let Some(match_key) = match_to_key(scoped_in, &x) {
+                prev.entry(match_key)
+                    .or_default()
+                    .push(now);
+
+                if symmetric {
+                    // Don't look for end match?
+                    // maybe always continue?
+                    continue;
+                }
+            }
+
+            if let Some(match_key) = match_to_key(scoped_out, &x) {
+                if let Some(then) = prev.get_mut(&match_key).and_then(Vec::<_>::pop) {
+                    v.push(now - then);
+                } else {
+                    println!(" not matched {:?}", match_key);
+                }
+            }
+        }
+    }
+    v
+}
+
 fn scoped_time_parse<I>(inp: I, time_select: &Regex, scoped_in: &Regex, scoped_out: &Regex) -> Vec<Decimal>
 where
     I: Iterator<Item = String>
@@ -203,6 +254,10 @@ mod tests {
 
     fn default_time() -> Regex {
         Regex::new(r"^(\d+\.\d+)").expect("regex failed to compile")
+    }
+
+    fn strace_time_ignore_mins_for_now() -> Regex {
+        Regex::new(r"^\d+:\d+:(\d+\.\d+)").expect("regex failed to compile")
     }
 
     fn d(s: &str) -> Option<Decimal> {
@@ -300,5 +355,31 @@ mod tests {
         let data = scoped_time_parse(d.split('\n').map(|x| x.to_string()), &default_time(),
                                      &r(r"->recurse"), &r(r"<-recurse"));
         assert_eq!(data, dec_v(vec![ "60.2755", "3288.0172", "5699.9640", "1.0000",]));
+    }
+
+    #[test]
+    fn test_scoped_match_load_simple_in_out() {
+        // Should be equivalent to non-match variant (matching key == '()')
+        let d = include_str!("../tests/example_scoped.txt");
+        let data = scoped_match_time_parse(d.split('\n').map(|x| x.to_string()), &default_time(),
+                                     &r(r"->reset"), &r(r"<-reset"));
+        assert_eq!(data, dec_v(vec![ "900.1583", "203.8183",]));
+
+        let data = scoped_match_time_parse(d.split('\n').map(|x| x.to_string()), &default_time(),
+                                     &r(r"->recurse"), &r(r"<-recurse"));
+        assert_eq!(data, dec_v(vec![ "60.2755", "3288.0172", "5699.9640", "1.0000",]));
+
+        // But should be able to categorise reset/recurse
+        let data = scoped_match_time_parse(d.split('\n').map(|x| x.to_string()), &default_time(),
+                                     &r(r"->(reset|recurse)"), &r(r"<-(reset|recurse)"));
+        assert_eq!(data, dec_v(vec![ "900.1583", "203.8183",  "60.2755", "3288.0172", "5699.9640", "1.0000"]));
+    }
+
+    #[test]
+    fn test_scoped_match_strace() {
+        let d = include_str!("../tests/strace.txt");
+        let data = scoped_match_time_parse(d.split('\n').map(|x| x.to_string()), &strace_time_ignore_mins_for_now(),
+                                     &r(r"openat\(.*\) = (\d+)\z"), &r(r"close\((\d+)\)"));
+        assert_eq!(data, dec_v(vec![ "0.000155", "0.000331", "0.000404", "0.000589", "0.000453", "0.000700"]));
     }
 }
