@@ -56,23 +56,29 @@ impl Histogram {
     }
 
     // Its unclear if this really works - COLUMNS isn't exported by default
-    fn get_terminal_columns_from_env() -> usize {
-        Self::from_int_env("COLUMNS").unwrap_or(Self::COLUMNS_DEFAULT)
+    fn get_terminal_columns_from_env() -> Option<usize> {
+        Self::from_int_env("COLUMNS").ok()
     }
 
-    #[cfg(not(all(feature = "terminal",target_family = "unix")))]
-    fn get_terminal_columns() -> usize {
-        Self::get_terminal_columns_from_env()
+    #[cfg(not(feature = "terminal"))]
+    fn get_hw_terminal_columns() -> Option<usize> {
+        None
     }
 
-    #[cfg(all(feature = "terminal",target_family = "unix"))]
+    #[cfg(feature = "terminal")]
+    fn get_hw_terminal_columns() -> Option<usize> {
+        use terminal_size::{Width, terminal_size};
+        terminal_size()
+            .map(|(Width(w),_)| w.into())
+    }
+
     fn get_terminal_columns() -> usize {
-        if let Ok((width, _)) = termion::terminal_size() {
-            if width > 0 {
-                return width as usize;
-            }
-        }
+
+        // Hmm,... terminal_size crate doesn't seem to honour COLUMNS, but does find
+        // more dimensions than termion did.  So we need to check the env _first_.
         Self::get_terminal_columns_from_env()
+            .or_else(Self::get_hw_terminal_columns)
+            .unwrap_or(Self::COLUMNS_DEFAULT)
     }
 
     pub fn set_auto_geometry(&mut self, height: usize) -> &mut Self {
