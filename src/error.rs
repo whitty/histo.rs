@@ -9,6 +9,7 @@ pub enum Error {
     IOError(std::io::Error),
     FormatError(std::fmt::Error),
     ParseIntError(std::num::ParseIntError),
+    ScopedMatchCountError(String, String),
 }
 
 impl Error {
@@ -32,6 +33,8 @@ impl std::fmt::Display for Error {
                 write!(f, "I/O error {}", e),
             Error::FormatError(e) =>
                 write!(f, "Format error {}", e),
+            Error::ScopedMatchCountError(i, o) =>
+                write!(f, "Scoped regexes don't have matching captures '{}' '{}'", i, o),
         }
     }
 }
@@ -39,7 +42,8 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
-            Error::NoData | Error::DataTagsTooLongToFitTerminal(_) => None,
+            Error::NoData | Error::DataTagsTooLongToFitTerminal(_) |
+            Error::ScopedMatchCountError(_, _) => None,
             Error::ParseIntError(ref e) => Some(e),
             Error::VarError(ref e) => Some(e),
             Error::IOError(ref e) => Some(e),

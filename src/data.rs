@@ -6,7 +6,7 @@ use std::collections::{VecDeque, HashMap};
 use regex::Regex;
 use rust_decimal::prelude::*;
 
-use super::Result;
+use super::{Result, Error};
 
 type InputType = std::io::BufReader<Box<dyn std::io::Read>>;
 type LinesT = std::io::Lines<InputType>;
@@ -174,6 +174,9 @@ pub fn scoped_time_load(inp: Vec<String>, time_select: &Regex, scoped_in: &Regex
 }
 
 pub fn scoped_match_time_load(inp: Vec<String>, time_select: &Regex, scoped_in: &Regex, scoped_out: &Regex) -> Result<Vec<Decimal>> {
+    if scoped_in.captures_len() != scoped_out.captures_len() {
+        return Err(Error::ScopedMatchCountError(scoped_in.as_str().into(), scoped_out.as_str().into()));
+    }
     Ok(scoped_match_time_parse(LineVisitor::new(inp), time_select, scoped_in, scoped_out))
 }
 
