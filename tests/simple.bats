@@ -71,9 +71,23 @@ setup() {
 }
 
 @test "time-diff simple" {
-  # TODO - check the output - I don't think its very good
-  run "$histo" time-diff "$test_dir"/example.txt
+  run "$histo" time-diff --time-delta=200 "$test_dir"/example.txt
   [ "$status" -eq 0 ]
+  [ "$output" = "     200 #################################################
+     400 ##############################################################
+     600 ##################
+     800 ########################
+    1000 ######
+    1200 ######
+    1400 ######
+    1600
+    1800
+    2000 ######
+    2200
+    2400
+    2600
+    2800
+    3000 ######" ]
 }
 
 @test "time-diff with select" {
