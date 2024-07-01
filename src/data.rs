@@ -177,6 +177,12 @@ pub fn scoped_match_time_load(inp: Vec<String>, time_select: &Regex, scoped_in: 
     if scoped_in.captures_len() != scoped_out.captures_len() {
         return Err(Error::ScopedMatchCountError(scoped_in.as_str().into(), scoped_out.as_str().into()));
     }
+
+    // if not using matched context we can do optimisation by avoiding match handling
+    if scoped_in.captures_len() == 1 {
+        return Ok(scoped_time_load(inp, time_select, scoped_in, scoped_out));
+    }
+
     Ok(scoped_match_time_parse(LineVisitor::new(inp), time_select, scoped_in, scoped_out))
 }
 
