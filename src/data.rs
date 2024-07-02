@@ -284,6 +284,16 @@ mod tests {
         Some(r(s))
     }
 
+    // use BufReader::lines() like the main application does
+    // (resolves windows issues)
+    fn to_lines(s: &str) -> std::vec::IntoIter<String> {
+        use std::io::{BufReader, Cursor};
+        BufReader::new(Cursor::new(s))
+            .lines()
+            .map_while(|x| x.ok())
+            .collect::<Vec<String>>().into_iter()
+    }
+
     #[test]
     fn test_time_from() {
         assert_eq!(time_from("0001.02: entry", &default_time()), d("1.02"));
@@ -303,7 +313,7 @@ mod tests {
     fn test_diff_parse() {
         let d = include_str!("../tests/example.txt");
 
-        assert_eq!(time_diff_parse(d.split('\n').map(|x| x.to_string()), &default_time(), &None),
+        assert_eq!(time_diff_parse(to_lines(d), &default_time(), &None),
                    dec_v(vec![
                        "576.1890", "161.7767", "120.1351", "42.0575", "953.7649",
                        "42.0574", "1079.9571", "102.1173", "306.1201", "107.9229",
@@ -312,7 +322,7 @@ mod tests {
                        "545.7759", "228.0426", "270.0844", "629.8757", "2892.1272",
                        "396.0098", "785.7978", "204.2189", "545.9591", "143.7864"]));
 
-        assert_eq!(time_diff_parse(d.split('\n').map(|x| x.to_string()), &r(r"(\d+)"), &None),
+        assert_eq!(time_diff_parse(to_lines(d), &r(r"(\d+)"), &None),
                    dec_v(vec![
                        "577", "161", "121", "42", "953", "42", "1080",
                        "102", "307", "108", "203", "679", "221",
@@ -321,10 +331,10 @@ mod tests {
                        "396", "786", "204", "546", "144"
                    ]));
 
-        assert_eq!(time_diff_parse(d.split('\n').map(|x| x.to_string()), &default_time(), &ro("ABC")),
+        assert_eq!(time_diff_parse(to_lines(d), &default_time(), &ro("ABC")),
                    dec_v(vec![]));
 
-        assert_eq!(time_diff_parse(d.split('\n').map(|x| x.to_string()), &default_time(), &ro(r"^\d{5}")),
+        assert_eq!(time_diff_parse(to_lines(d), &default_time(), &ro(r"^\d{5}")),
                    dec_v(vec![ "390.0038",
                        "545.7759", "228.0426", "270.0844", "629.8757", "2892.1272",
                        "396.0098", "785.7978", "204.2189", "545.9591", "143.7864"]));
@@ -333,18 +343,18 @@ mod tests {
     #[test]
     fn test_simple_load() {
         let d = include_str!("../tests/seq.txt");
-        let data = simple_load_w_filter_in(d.split('\n').map(|x| x.to_string()), &None);
-        assert_eq!(data.len(), 21); // 1..20 + empty line
+        let data = simple_load_w_filter_in(to_lines(d), &None);
+        assert_eq!(data.len(), 20); // 1..20
         assert!(data.into_values().all(|x| x == 1)); // all values are unique
 
-        let data = simple_load_w_filter_in(d.split('\n').map(|x| x.to_string()), &ro("2"));
+        let data = simple_load_w_filter_in(to_lines(d), &ro("2"));
         assert_eq!(data.len(), 3); // 20, 12, 2
     }
 
     #[test]
     fn test_select_load() {
         let d = include_str!("../tests/seq.txt");
-        let data = select_load_in(d.split('\n').map(|x| x.to_string()), &r(r"\d([0-4])"));
+        let data = select_load_in(to_lines(d), &r(r"\d([0-4])"));
         assert_eq!(data, BTreeMap::from([
             (String::from("0"), 2), // 10, 20
             (String::from("1"), 1), // 11
@@ -357,11 +367,11 @@ mod tests {
     #[test]
     fn test_scoped_load_simple_in_out() {
         let d = include_str!("../tests/example_scoped.txt");
-        let data = scoped_time_parse(d.split('\n').map(|x| x.to_string()), &default_time(),
+        let data = scoped_time_parse(to_lines(d), &default_time(),
                                      &r(r"->reset"), &r(r"<-reset"));
         assert_eq!(data, dec_v(vec![ "900.1583", "203.8183",]));
 
-        let data = scoped_time_parse(d.split('\n').map(|x| x.to_string()), &default_time(),
+        let data = scoped_time_parse(to_lines(d), &default_time(),
                                      &r(r"->recurse"), &r(r"<-recurse"));
         assert_eq!(data, dec_v(vec![ "60.2755", "3288.0172", "5699.9640", "1.0000",]));
     }
@@ -370,16 +380,16 @@ mod tests {
     fn test_scoped_match_load_simple_in_out() {
         // Should be equivalent to non-match variant (matching key == '()')
         let d = include_str!("../tests/example_scoped.txt");
-        let data = scoped_match_time_parse(d.split('\n').map(|x| x.to_string()), &default_time(),
+        let data = scoped_match_time_parse(to_lines(d), &default_time(),
                                      &r(r"->reset"), &r(r"<-reset"));
         assert_eq!(data, dec_v(vec![ "900.1583", "203.8183",]));
 
-        let data = scoped_match_time_parse(d.split('\n').map(|x| x.to_string()), &default_time(),
+        let data = scoped_match_time_parse(to_lines(d), &default_time(),
                                      &r(r"->recurse"), &r(r"<-recurse"));
         assert_eq!(data, dec_v(vec![ "60.2755", "3288.0172", "5699.9640", "1.0000",]));
 
         // But should be able to categorise reset/recurse
-        let data = scoped_match_time_parse(d.split('\n').map(|x| x.to_string()), &default_time(),
+        let data = scoped_match_time_parse(to_lines(d), &default_time(),
                                      &r(r"->(reset|recurse)"), &r(r"<-(reset|recurse)"));
         assert_eq!(data, dec_v(vec![ "900.1583", "203.8183",  "60.2755", "3288.0172", "5699.9640", "1.0000"]));
     }
@@ -387,7 +397,7 @@ mod tests {
     #[test]
     fn test_scoped_match_strace() {
         let d = include_str!("../tests/strace.txt");
-        let data = scoped_match_time_parse(d.split('\n').map(|x| x.to_string()), &strace_time_ignore_mins_for_now(),
+        let data = scoped_match_time_parse(to_lines(d), &strace_time_ignore_mins_for_now(),
                                      &r(r"openat\(.*\) = (\d+)\z"), &r(r"close\((\d+)\)"));
         assert_eq!(data, dec_v(vec![ "0.000155", "0.000331", "0.000404", "0.000589", "0.000453", "0.000700"]));
     }
