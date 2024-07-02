@@ -6,7 +6,7 @@ on:
 
 jobs:
   test:
-    name: ${{matrix.rust}} on ${{matrix.os}}
+    name: ${{matrix.rust}} on ${{matrix.os}} with ${{matrix.feature_flag}}
     runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false
@@ -16,6 +16,9 @@ jobs:
           - 1.75.0
           - 1.63.0
           - stable
+        feature_flag:
+          - ~
+          - "--no-default-features"
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -30,10 +33,10 @@ jobs:
           components: clippy
 
       - name: Build
-        run: cargo build
+        run: cargo build ${{matrix.feature_flag}}
 
       - name: Unit-test
-        run: cargo test
+        run: cargo test ${{matrix.feature_flag}}
 
       - name: Analyze
-        run: cargo clippy -- --deny warnings
+        run: cargo clippy ${{matrix.feature_flag}} -- --deny warnings
