@@ -3,15 +3,13 @@
 
 use rust_decimal::prelude::*;
 
-use super::Result;
-#[cfg(not(feature = "asciigraph"))]
-use super::Error;
+use super::{Result, Error};
 
 #[derive(Default)]
 pub struct Histogram {
     buckets: Vec<(String, i64)>,
 
-    geom: Option<(usize, usize)>,
+    width: Option<usize>,
 
     show_counts: bool,
 }
@@ -44,9 +42,16 @@ impl Histogram {
         return Self::new_indexed_it(&mut buckets.iter().copied());
     }
 
-    pub fn set_geometry(&mut self, width: usize, height: usize) -> &mut Self {
-        self.geom = Some((width, height));
+    pub fn set_width(&mut self, width: usize) -> &mut Self {
+        self.width = Some(width);
         self
+    }
+
+    pub fn set_opt_width(&mut self, width: Option<usize>) -> &mut Self {
+        match width {
+            Some(width) => self.set_width(width),
+            None => self.set_auto_width()
+        }
     }
 
     fn from_int_env(v: &str) -> Result<usize> {
@@ -81,9 +86,8 @@ impl Histogram {
             .unwrap_or(Self::COLUMNS_DEFAULT)
     }
 
-    pub fn set_auto_geometry(&mut self, height: usize) -> &mut Self {
-        let width = Self::get_terminal_columns();
-        self.geom = Some((width, height));
+    pub fn set_auto_width(&mut self) -> &mut Self {
+        self.width = Some(Self::get_terminal_columns());
         self
     }
 
@@ -100,22 +104,6 @@ impl Histogram {
         self.set_show_counts(false)
     }
 
-    #[cfg(feature = "asciigraph")]
-    pub fn draw(&self) -> Result<String> {
-        let mut graph = if self.geom.is_some() {
-            let g = self.geom.unwrap();
-            asciigraph::Graph::new(g.0, g.1)
-        } else {
-            asciigraph::Graph::default()
-        };
-
-        Ok(graph.set_1d_labeled_data(self.buckets.clone())
-            .set_skip_values(asciigraph::SkipValue::None)
-            .set_y_min(0)
-            .draw())
-    }
-
-    #[cfg(any(not(feature = "asciigraph"), test))]
     fn scale(v: i64, min: i64, max: i64, width: usize) -> usize {
         // Clamp v to max
         let v = v.min(max);
@@ -136,7 +124,6 @@ impl Histogram {
             .unwrap_or(width)
     }
 
-    #[cfg(not(feature = "asciigraph"))]
     fn count_size(&self) -> usize {
         if self.show_counts {
             if let Some(first) = self.buckets.first() {
@@ -154,7 +141,6 @@ impl Histogram {
         0
     }
 
-    #[cfg(not(feature = "asciigraph"))]
     pub fn draw(&self) -> Result<String> {
         use std::{fmt::Write, ops::Div};
 
@@ -175,8 +161,7 @@ impl Histogram {
             min_val = 0;
         }
 
-        let term_columns = self.geom
-            .map(|x| x.0)
+        let term_columns = self.width
             .unwrap_or(Self::COLUMNS_DEFAULT);
 
         // no more than half the size
@@ -312,7 +297,6 @@ mod tests {
     use super::*;
 
     #[test]
-    #[cfg(not(feature = "asciigraph"))]
     fn test_draw() {
         // TODO - not a test
         let s = Histogram::new_indexed(&vec![100, 200, 300, 400, 200, 100]).draw().unwrap();
@@ -374,20 +358,6 @@ mod tests {
    31-35:   1 #
 "#
  );
-    }
-
-    #[test]
-    #[cfg(feature = "asciigraph")]
-    fn test_ag_draw() {
-        // TODO - not a test
-        let s = Histogram::new_indexed(&vec![100, 200, 300, 400, 200, 100]).draw().unwrap();
-        println!("{}", s);
-        assert_eq!(s, "438 |                                                \n    |                                                \n    |                        ████████                \n384 |                        ████████                \n    |                        ████████                \n    |                        ████████                \n330 |                        ████████                \n    |                ▄▄▄▄▄▄▄▄████████                \n    |                ████████████████                \n276 |                ████████████████                \n    |                ████████████████                \n    |                ████████████████                \n222 |                ████████████████                \n    |        ████████████████████████████████        \n    |        ████████████████████████████████        \n168 |        ████████████████████████████████        \n    |        ████████████████████████████████        \n    |        ████████████████████████████████        \n114 |▄▄▄▄▄▄▄▄████████████████████████████████▄▄▄▄▄▄▄▄\n    |████████████████████████████████████████████████\n    |████████████████████████████████████████████████\n 60 |████████████████████████████████████████████████\n    |████████████████████████████████████████████████\n    |████████████████████████████████████████████████\n    └------------------------------------------------\n     0       1       2       3       4       5       \n");
-
-        let h = Histogram::new(&vec![(100, "1-5"), (200, "6-10"), (300, "11-15"), (400, "16-20"), (200, "21-25"), (100, "25-30"), (0, "31-35")]);
-        let s = h.draw().unwrap();
-        println!("{}", s);
-        assert_eq!(s, "451 |                                                \n    |                                                \n    |                     ▄▄▄▄▄▄▄                    \n394 |                     ███████                    \n    |                     ███████                    \n    |                     ███████                    \n337 |                     ███████                    \n    |              ▄▄▄▄▄▄▄███████                    \n    |              ██████████████                    \n280 |              ██████████████                    \n    |              ██████████████                    \n    |              ██████████████                    \n223 |              ██████████████                    \n    |       ████████████████████████████             \n    |       ████████████████████████████             \n166 |       ████████████████████████████             \n    |       ████████████████████████████             \n    |       ████████████████████████████             \n109 |██████████████████████████████████████████      \n    |██████████████████████████████████████████      \n    |██████████████████████████████████████████      \n 52 |██████████████████████████████████████████      \n    |██████████████████████████████████████████      \n    |██████████████████████████████████████████▄▄▄▄▄▄\n    └------------------------------------------------\n     1-5     6-10    11-15   16-20   21-25   25-30   \n");
     }
 
     fn dec_v(v :&[&str]) -> Vec<Decimal> {

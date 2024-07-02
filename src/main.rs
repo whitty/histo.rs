@@ -14,14 +14,12 @@ struct Options {
     #[command(subcommand)]
     command: Commands,
 
-    /// Graph height in lines
-    // TODO - height not supported without asciigraph, but use the same machinery
-    // to try to pass auto ("columns")
-    #[arg(long, default_value_t=40, global=true, hide=cfg!(not(feature="asciigraph")))]
-    height: usize,
+    /// Graph width in chars
+    #[arg(long, global=true)]
+    width: Option<usize>,
 
     /// Include frequencies (counts)
-    #[arg(long, default_value_t=false, global=true, hide=cfg!(feature="asciigraph"))]
+    #[arg(long, default_value_t=false, global=true)]
     show_counts: bool,
 
     /// Input file(s), or if omitted use stdin.
@@ -164,7 +162,7 @@ fn print_histo(data: std::collections::BTreeMap<String, i64>, args: &Options) ->
     }
     let g = histo_log::graph::Histogram::new_it(&mut data.into_iter())
         .set_show_counts(args.show_counts)
-        .set_auto_geometry(args.height).draw()?;
+        .set_opt_width(args.width).draw()?;
     println!("{}", g);
     Ok(())
 }
@@ -175,7 +173,7 @@ fn print_time_histo(data: std::collections::BTreeMap<Decimal, i64>, args: &Optio
     }
     let g = histo_log::graph::Histogram::new_it(&mut data.into_iter().map(|(v,c)| (v.to_string(), c) ))
         .set_show_counts(args.show_counts)
-        .set_auto_geometry(args.height).draw()?;
+        .set_opt_width(args.width).draw()?;
     println!("{}", g);
     Ok(())
 }

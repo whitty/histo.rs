@@ -58,9 +58,9 @@ for (ver in build_os_vers) {
             for (cmd in [
               '--help',
               'simple .jenkinsfile',
-              'simple --height 25 .jenkinsfile',
-              'time-diff --height 25 tests/example.txt',
-              "time-diff --height 25 --time-select '^(\\d+)' tests/example.txt",
+              'simple --width 65 .jenkinsfile',
+              'time-diff --width 65 tests/example.txt',
+              "time-diff --width 65 --time-select '^(\\d+)' tests/example.txt",
             ]) {
               warnError("run") {
                 sh "cargo run -- $cmd"
@@ -92,13 +92,13 @@ for (ver in build_os_vers) {
             }
           }
 
-          stage("${version}-build-ag${rev}") {
-              sh "cargo build --features asciigraph"
+          stage("${version}-build-no-default${rev}") {
+              sh "cargo build --no-default-features"
           }
 
-          stage("${version}-test-ag${rev}") {
+          stage("${version}-test-no-default${rev}") {
             warnError("test") {
-              sh "cargo test --features asciigraph"
+              sh "cargo test --no-default-features"
             }
           }
 
